@@ -9,7 +9,14 @@ namespace UnoSrv
     {
         static void Main(string[] args)
         {
-
+            int playercount = 4;
+            for (int i = 0; i < args.Length; i++)
+            {
+                if (args[i] == "-player")
+                    playercount = Convert.ToInt32(args[i + 1]);
+            }
+            UnoSrv server = new UnoSrv(playercount);
+            server.Start();
         }
     }
 }

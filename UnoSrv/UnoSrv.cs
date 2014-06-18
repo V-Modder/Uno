@@ -1,75 +1,260 @@
 ﻿using System;
 using System.Text;
-using System.Net.Sockets;
 using System.Threading;
-using System.Net;
+using System.Collections.Generic;
+using Nito.Async.Sockets;
+using Nito.Async;
+using System.Collections;
+using UnoC;
 
 namespace UnoSrv
 {
     class UnoSrv
     {
-        private TcpListener tcpListener;
-        private Thread listenThread;
-        private TcpClient[] clients;
-        private int clientsUsed;
+        private SimpleServerTcpSocket ListeningSocket;
+        private List<SimpleServerChildTcpSocket> clients;
+        private List<bool> bclients;
+        private int clientsToUse;
+        private bool bStart = false;
+        private bool bCardTaken = false;
+        private bool bEndRound = false;
+        private bool bEndGame = false;
+        private bool bDirection = false; //false = clockvise
+        private int iTake = 0;
+        private int clientIsOn = 0;
+        private UnoCards cards;
+        private Stack<UnoCard> cDeck = new Stack<UnoCard>();
 
         public UnoSrv(int Clients)
         {
-            clients = new TcpClient[Clients];
-            clientsUsed = 0;
-            this.tcpListener = new TcpListener(IPAddress.Any, 3000);
-            this.listenThread = new Thread(new ThreadStart(ListenForClients));
-            this.listenThread.Start();
+            this.cards = new UnoCards();
+            this.clients = new List<SimpleServerChildTcpSocket>();
+            this.bclients = new List<bool>();
+            this.clientsToUse = Clients;
         }
 
-        private void ListenForClients()
+        private void ListeningSocket_ConnectionArrived(AsyncResultEventArgs<SimpleServerChildTcpSocket> e)
         {
-            this.tcpListener.Start();
-
-            while (clientsUsed < clients.Length)
+            // Check for errors
+            if (e.Error != null)
             {
-                //blocks until a client has connected to the server
-                clients[clientsUsed++] = this.tcpListener.AcceptTcpClient();
+                ResetListeningSocket();
+                return;
+            }
+            SimpleServerChildTcpSocket socket = e.Result;
 
-                //create a thread to handle communication with connected client
-                HandleClientComm(clientsUsed-1);
+            try
+            {
+                // Save the new child socket connection
+                clients.Add(socket);
+                bclients.Add(false);
+                socket.PacketArrived += (args) => ChildSocket_PacketArrived(socket, args);
+                socket.ShutdownCompleted += (args) => ChildSocket_ShutdownCompleted(socket, args);
+                // Display the connection information
+                //textBoxLog.AppendText("Connection established to " + socket.RemoteEndPoint.ToString() + Environment.NewLine);
+            }
+            catch (Exception ex)
+            {
+                ResetChildSocket(socket);
+                //textBoxLog.AppendText("Socket error accepting connection: [" + ex.GetType().Name + "] " + ex.Message + Environment.NewLine);
+            }
+            finally
+            {
+                //RefreshDisplay();
             }
         }
 
-        private void HandleClientComm(int client)
+        private void ChildSocket_PacketArrived(SimpleServerChildTcpSocket socket, AsyncResultEventArgs<byte[]> e)
         {
-            NetworkStream clientStream = clients[client].GetStream();
-
-            byte[] message = new byte[4096];
-            int bytesRead;
-
-            while (true)
+            try
             {
-                bytesRead = 0;
-
-                try
+                // Check for errors
+                if (e.Error != null)
                 {
-                    //blocks until a client sends a message
-                    bytesRead = clientStream.Read(message, 0, 4096);
+                    //textBoxLog.AppendText("Client socket error during Read from " + socket.RemoteEndPoint.ToString() + ": [" + e.Error.GetType().Name + "] " + e.Error.Message + Environment.NewLine);
+                    ResetChildSocket(socket);
                 }
-                catch
+                else if (e.Result == null)
                 {
-                    //a socket error has occured
-                    break;
-                }
+                    // PacketArrived completes with a null packet when the other side gracefully closes the connection
+                    //textBoxLog.AppendText("Socket graceful close detected from " + socket.RemoteEndPoint.ToString() + Environment.NewLine);
 
-                if (bytesRead == 0)
+                    // Close the socket and remove it from the list
+                    ResetChildSocket(socket);
+                }
+                else
                 {
-                    //the client has disconnected from the server
-                    break;
+                    // Handle the message
+                    UnoCard msg = (UnoCard)Util.Deserialize(e.Result);
+                    if (!bStart)
+                    {
+                        if (socket.LocalEndPoint.Address == ListeningSocket.LocalEndPoint.Address && msg == UnoCard.StartRound)
+                            bStart = true;
+                    }
+                    else if (socket == clients[clientIsOn])
+                    {
+                        if (msg == UnoCard.EndRound)
+                        {
+                            bEndRound = true;
+                        }
+                        else if (msg == UnoCard.GiveCard && !bCardTaken)
+                        {
+                            bCardTaken = true;
+                            socket.WriteAsync(Util.Serialize(this.GetCard()));
+                        }
+                        else if (msg == UnoCard.Uno)
+                        {
+                            bclients[clientIsOn] = true;
+                        }
+                        else if (msg == UnoCard.Won)
+                        {
+                            if (bclients[clientIsOn] == true)
+                                bEndGame = true;
+                        }
+                        else
+                        {
+                            if (msg.Number == (int)UnoC.SpecialCards.Skip)
+                            {
+                                if (bDirection)
+                                    clientIsOn = ((clientIsOn - 1) + clients.Count) % clients.Count;
+                                else
+                                    clientIsOn = (clientIsOn + 1) % clients.Count;
+                            }
+                            else if (msg.Number == (int)UnoC.SpecialCards.TakeTwo)
+                            {
+                                iTake = 2;
+                            }
+                            else if (msg.Color == Colors.Black && msg.Number == 1)
+                            {
+                                iTake = 4;
+                            }
+                            else if (msg.Number == (int)UnoC.SpecialCards.Turn)
+                            {
+                                bDirection = !bDirection;
+                            }
+                            cDeck.Push(msg);
+                            bEndRound = true;
+                        }
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                //textBoxLog.AppendText("Error reading from socket " + socket.RemoteEndPoint.ToString() + ": [" + ex.GetType().Name + "] " + ex.Message + Environment.NewLine);
+                ResetChildSocket(socket);
+            }
+            finally
+            {
+                //RefreshDisplay();
+            }
+        }
 
-                //message has successfully been received
-                ASCIIEncoding encoder = new ASCIIEncoding();
-                System.Diagnostics.Debug.WriteLine(encoder.GetString(message, 0, bytesRead));
+        private void ChildSocket_ShutdownCompleted(object sender, System.ComponentModel.AsyncCompletedEventArgs e)
+        {
+            SimpleServerChildTcpSocket socket = (SimpleServerChildTcpSocket)sender;
+
+            // Check for errors
+            if (e.Error != null)
+            {
+                //textBoxLog.AppendText("Socket error during Shutdown of " + socket.RemoteEndPoint.ToString() + ": [" + e.Error.GetType().Name + "] " + e.Error.Message + Environment.NewLine);
+                ResetChildSocket(socket);
+            }
+            else
+            {
+                //textBoxLog.AppendText("Socket shutdown completed on " + socket.RemoteEndPoint.ToString() + Environment.NewLine);
+
+                // Close the socket and remove it from the list
+                ResetChildSocket(socket);
+            }
+            // RefreshDisplay();
+        }
+
+        private bool RemoveElement(SimpleServerChildTcpSocket s)
+        {
+            if (s != null)
+                s.Close();
+
+            return clients.Remove(s);
+        }
+
+        private void ResetChildSocket(SimpleServerChildTcpSocket childSocket)
+        {
+            RemoveElement(childSocket);
+        }
+
+        private void ResetListeningSocket()
+        {
+            // Close all child sockets and delete their handles to the ServerDlg
+            foreach (SimpleServerChildTcpSocket s in clients)
+            {
+                RemoveElement(s);
+                s.AbortiveClose();
+            }
+            clients.Clear();
+
+            // Close the listening socket
+            ListeningSocket.Close();
+            ListeningSocket = null;
+        }
+
+        private UnoCard GetCard()
+        {
+            if (cards.isEmpty())
+            {
+                UnoCard c = cDeck.Pop();
+                cards.ReInit(cDeck.ToArray());
+                cDeck.Clear();
+                cDeck.Push(c);
+            }
+            return cards.GetNext();
+        }
+
+        public void Start()
+        {
+            this.ListeningSocket = new SimpleServerTcpSocket();
+            this.ListeningSocket.ConnectionArrived += ListeningSocket_ConnectionArrived;
+            this.ListeningSocket.Listen(3456);
+            this.StartGame();
+        }
+
+        private void StartGame()
+        {
+            //Wait for clients to connect
+            while (clients.Count < clientsToUse || bStart)
+            {
+                Thread.Sleep(100);
             }
 
-            tcpClient.Close();
+            //Share cards to all players + deck
+            cards = new UnoCards();
+            for (int i = 0; i < clients.Count * 7; i++)
+            {
+                clients[i % clients.Count].WriteAsync(Util.Serialize(cards.GetNext()));
+            }
+            cDeck.Push(cards.GetNext());
+
+            //Loop until somebody has won
+            int cnt = cDeck.Count;
+            while (!bEndGame)
+            {
+                clients[clientIsOn].WriteAsync(Util.Serialize(cDeck.Peek()));
+                if (iTake > 0)
+                {
+                    clients[clientIsOn].WriteAsync(Util.Serialize(cards.GetNext()));
+                    clients[clientIsOn].WriteAsync(Util.Serialize(cards.GetNext()));
+                    iTake = 0;
+                }
+                clients[clientIsOn].WriteAsync(Util.Serialize(UnoCard.EndRound));
+                //blocking call
+                while (!bEndRound) { Thread.Sleep(100); }
+                //reset for next round
+                bEndRound = false;
+                if(bDirection)
+                    clientIsOn = ((clientIsOn - 1) + clients.Count) % clients.Count;
+                else
+                    clientIsOn = (clientIsOn + 1) % clients.Count;
+                bCardTaken = false;
+            }
         }
     }
 }

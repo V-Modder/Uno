@@ -32,13 +32,13 @@
             this.rdb_createSrv = new System.Windows.Forms.RadioButton();
             this.rdb_connect = new System.Windows.Forms.RadioButton();
             this.grb_connect = new System.Windows.Forms.GroupBox();
-            this.textBox1 = new System.Windows.Forms.TextBox();
-            this.txt_playerName = new System.Windows.Forms.TextBox();
             this.lbl_address = new System.Windows.Forms.Label();
+            this.txt_address = new System.Windows.Forms.TextBox();
+            this.txt_playerName = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
             this.grb_createSrv = new System.Windows.Forms.GroupBox();
-            this.txt_maxPlayer = new System.Windows.Forms.TextBox();
             this.lbl_maxPlayer = new System.Windows.Forms.Label();
+            this.txt_maxPlayer = new System.Windows.Forms.TextBox();
             this.grb_connect.SuspendLayout();
             this.grb_createSrv.SuspendLayout();
             this.SuspendLayout();
@@ -51,6 +51,7 @@
             this.btn_start.TabIndex = 0;
             this.btn_start.Text = "Start";
             this.btn_start.UseVisualStyleBackColor = true;
+            this.btn_start.Click += new System.EventHandler(this.btn_start_Click);
             // 
             // rdb_createSrv
             // 
@@ -77,27 +78,13 @@
             // grb_connect
             // 
             this.grb_connect.Controls.Add(this.lbl_address);
-            this.grb_connect.Controls.Add(this.textBox1);
+            this.grb_connect.Controls.Add(this.txt_address);
             this.grb_connect.Location = new System.Drawing.Point(32, 36);
             this.grb_connect.Name = "grb_connect";
             this.grb_connect.Size = new System.Drawing.Size(200, 59);
             this.grb_connect.TabIndex = 3;
             this.grb_connect.TabStop = false;
             this.grb_connect.Text = "Verbinde zu Spiel";
-            // 
-            // textBox1
-            // 
-            this.textBox1.Location = new System.Drawing.Point(94, 19);
-            this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(100, 20);
-            this.textBox1.TabIndex = 0;
-            // 
-            // txt_playerName
-            // 
-            this.txt_playerName.Location = new System.Drawing.Point(104, 177);
-            this.txt_playerName.Name = "txt_playerName";
-            this.txt_playerName.Size = new System.Drawing.Size(100, 20);
-            this.txt_playerName.TabIndex = 4;
             // 
             // lbl_address
             // 
@@ -107,6 +94,20 @@
             this.lbl_address.Size = new System.Drawing.Size(48, 13);
             this.lbl_address.TabIndex = 1;
             this.lbl_address.Text = "Adresse:";
+            // 
+            // txt_address
+            // 
+            this.txt_address.Location = new System.Drawing.Point(94, 19);
+            this.txt_address.Name = "txt_address";
+            this.txt_address.Size = new System.Drawing.Size(100, 20);
+            this.txt_address.TabIndex = 0;
+            // 
+            // txt_playerName
+            // 
+            this.txt_playerName.Location = new System.Drawing.Point(104, 177);
+            this.txt_playerName.Name = "txt_playerName";
+            this.txt_playerName.Size = new System.Drawing.Size(100, 20);
+            this.txt_playerName.TabIndex = 4;
             // 
             // label1
             // 
@@ -130,13 +131,6 @@
             this.grb_createSrv.TabStop = false;
             this.grb_createSrv.Text = "Server erstellen";
             // 
-            // txt_maxPlayer
-            // 
-            this.txt_maxPlayer.Location = new System.Drawing.Point(94, 26);
-            this.txt_maxPlayer.Name = "txt_maxPlayer";
-            this.txt_maxPlayer.Size = new System.Drawing.Size(100, 20);
-            this.txt_maxPlayer.TabIndex = 0;
-            // 
             // lbl_maxPlayer
             // 
             this.lbl_maxPlayer.AutoSize = true;
@@ -145,6 +139,13 @@
             this.lbl_maxPlayer.Size = new System.Drawing.Size(73, 13);
             this.lbl_maxPlayer.TabIndex = 1;
             this.lbl_maxPlayer.Text = "Spieleranzahl:";
+            // 
+            // txt_maxPlayer
+            // 
+            this.txt_maxPlayer.Location = new System.Drawing.Point(94, 26);
+            this.txt_maxPlayer.Name = "txt_maxPlayer";
+            this.txt_maxPlayer.Size = new System.Drawing.Size(100, 20);
+            this.txt_maxPlayer.TabIndex = 0;
             // 
             // UnoMainForm
             // 
@@ -176,7 +177,7 @@
         private System.Windows.Forms.RadioButton rdb_connect;
         private System.Windows.Forms.GroupBox grb_connect;
         private System.Windows.Forms.Label lbl_address;
-        private System.Windows.Forms.TextBox textBox1;
+        private System.Windows.Forms.TextBox txt_address;
         private System.Windows.Forms.TextBox txt_playerName;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.GroupBox grb_createSrv;
