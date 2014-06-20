@@ -12,14 +12,14 @@ namespace UnoSrv
     class UnoSrv
     {
         private SimpleServerTcpSocket ListeningSocket;
-        private List<SimpleServerChildTcpSocket> clients;
-        private List<bool> bclients;
+        private List<UnoPlayer> clients;
         private int clientsToUse;
         private bool bStart = false;
         private bool bCardTaken = false;
         private bool bEndRound = false;
         private bool bEndGame = false;
         private bool bDirection = false; //false = clockvise
+        private bool bSendName = false;
         private int iTake = 0;
         private int clientIsOn = 0;
         private UnoCards cards;
@@ -28,8 +28,7 @@ namespace UnoSrv
         public UnoSrv(int Clients)
         {
             this.cards = new UnoCards();
-            this.clients = new List<SimpleServerChildTcpSocket>();
-            this.bclients = new List<bool>();
+            this.clients = new List<UnoPlayer>();
             this.clientsToUse = Clients;
         }
 
@@ -46,8 +45,7 @@ namespace UnoSrv
             try
             {
                 // Save the new child socket connection
-                clients.Add(socket);
-                bclients.Add(false);
+                clients.Add(new UnoPlayer(socket));
                 socket.PacketArrived += (args) => ChildSocket_PacketArrived(socket, args);
                 socket.ShutdownCompleted += (args) => ChildSocket_ShutdownCompleted(socket, args);
                 // Display the connection information
@@ -84,57 +82,69 @@ namespace UnoSrv
                 }
                 else
                 {
-                    // Handle the message
-                    UnoCard msg = (UnoCard)Util.Deserialize(e.Result);
-                    if (!bStart)
+                    ///ToDO: get the name of the player
+                    if (bSendName)
                     {
-                        if (socket.LocalEndPoint.Address == ListeningSocket.LocalEndPoint.Address && msg == UnoCard.StartRound)
-                            bStart = true;
+                        UnoCard msg = (UnoCard)Util.Deserialize(e.Result);
+                        if (!bStart)
+                        {
+                            if (socket.LocalEndPoint.Address == ListeningSocket.LocalEndPoint.Address && msg == UnoCard.StartRound)
+                                bStart = true;
+                        }
+                        else if (socket == clients[clientIsOn].Socket)
+                        {
+                            if (msg == UnoCard.EndRound)
+                            {
+                                bSendName = false;
+                                bEndRound = true;
+                            }
+                            else if (msg == UnoCard.GiveCard && !bCardTaken)
+                            {
+                                bCardTaken = true;
+                                socket.WriteAsync(Util.Serialize(this.GetCard()));
+                            }
+                            else if (msg == UnoCard.Uno)
+                            {
+                                clients[clientIsOn].HasLastCard = true;
+                            }
+                            else if (msg == UnoCard.Won)
+                            {
+                                if (clients[clientIsOn].HasLastCard == true)
+                                    bEndGame = true;
+                            }
+                            else
+                            {
+                                if (msg.Number == (int)UnoC.SpecialCards.Skip)
+                                {
+                                    if (bDirection)
+                                        clientIsOn = ((clientIsOn - 1) + clients.Count) % clients.Count;
+                                    else
+                                        clientIsOn = (clientIsOn + 1) % clients.Count;
+                                }
+                                else if (msg.Number == (int)UnoC.SpecialCards.TakeTwo)
+                                {
+                                    iTake = 2;
+                                }
+                                else if (msg.Color == Colors.Black && msg.Number == 1)
+                                {
+                                    iTake = 4;
+                                }
+                                else if (msg.Number == (int)UnoC.SpecialCards.Turn)
+                                {
+                                    bDirection = !bDirection;
+                                }
+                                clients[clientIsOn].Cards--;
+                                cDeck.Push(msg);
+                                bEndRound = true;
+                            }
+                        }
                     }
-                    else if (socket == clients[clientIsOn])
+                    else
                     {
-                        if (msg == UnoCard.EndRound)
-                        {
-                            bEndRound = true;
-                        }
-                        else if (msg == UnoCard.GiveCard && !bCardTaken)
-                        {
-                            bCardTaken = true;
-                            socket.WriteAsync(Util.Serialize(this.GetCard()));
-                        }
-                        else if (msg == UnoCard.Uno)
-                        {
-                            bclients[clientIsOn] = true;
-                        }
-                        else if (msg == UnoCard.Won)
-                        {
-                            if (bclients[clientIsOn] == true)
-                                bEndGame = true;
-                        }
-                        else
-                        {
-                            if (msg.Number == (int)UnoC.SpecialCards.Skip)
-                            {
-                                if (bDirection)
-                                    clientIsOn = ((clientIsOn - 1) + clients.Count) % clients.Count;
-                                else
-                                    clientIsOn = (clientIsOn + 1) % clients.Count;
-                            }
-                            else if (msg.Number == (int)UnoC.SpecialCards.TakeTwo)
-                            {
-                                iTake = 2;
-                            }
-                            else if (msg.Color == Colors.Black && msg.Number == 1)
-                            {
-                                iTake = 4;
-                            }
-                            else if (msg.Number == (int)UnoC.SpecialCards.Turn)
-                            {
-                                bDirection = !bDirection;
-                            }
-                            cDeck.Push(msg);
-                            bEndRound = true;
-                        }
+                        UnoPlayer player = (UnoPlayer)Util.Deserialize(e.Result);
+                        clients[clientIsOn].Name = player.Name;
+                        clients[clientIsOn].Cards = player.Cards;
+                        bSendName = true;
                     }
                 }
             }
@@ -172,9 +182,30 @@ namespace UnoSrv
         private bool RemoveElement(SimpleServerChildTcpSocket s)
         {
             if (s != null)
-                s.Close();
+            {
+                foreach (UnoPlayer p in clients)
+                {
+                    if (p.Socket == s)
+                    {
+                        s.AbortiveClose();
+                        return clients.Remove(p);
+                    }
+                }
+            }
+            return false;
+        }
 
-            return clients.Remove(s);
+        private bool RemoveElement(UnoPlayer p)
+        {
+            if (p != null)
+            {
+                if (p.Socket != null)
+                {
+                    p.Socket.AbortiveClose();
+                    return clients.Remove(p);
+                }
+            }
+            return false;
         }
 
         private void ResetChildSocket(SimpleServerChildTcpSocket childSocket)
@@ -185,16 +216,25 @@ namespace UnoSrv
         private void ResetListeningSocket()
         {
             // Close all child sockets and delete their handles to the ServerDlg
-            foreach (SimpleServerChildTcpSocket s in clients)
+            foreach (UnoPlayer s in clients)
             {
                 RemoveElement(s);
-                s.AbortiveClose();
             }
             clients.Clear();
 
             // Close the listening socket
             ListeningSocket.Close();
             ListeningSocket = null;
+        }
+
+        private int SearchSocket(SimpleServerChildTcpSocket s)
+        {
+            for (int i = 0; i < clients.Count; i++)
+            {
+                if (s == clients[i].Socket)
+                    return i;
+            }
+            return 99;
         }
 
         private UnoCard GetCard()
@@ -225,26 +265,34 @@ namespace UnoSrv
                 Thread.Sleep(100);
             }
 
+            //Share all Playername's
+
             //Share cards to all players + deck
             cards = new UnoCards();
             for (int i = 0; i < clients.Count * 7; i++)
             {
-                clients[i % clients.Count].WriteAsync(Util.Serialize(cards.GetNext()));
+                clients[i % clients.Count].Socket.WriteAsync(Util.Serialize(cards.GetNext()));
+                if (i >= (clients.Count * 6) - 1)
+                    clients[i % clients.Count].Cards = 7;
             }
             cDeck.Push(cards.GetNext());
 
             //Loop until somebody has won
-            int cnt = cDeck.Count;
             while (!bEndGame)
             {
-                clients[clientIsOn].WriteAsync(Util.Serialize(cDeck.Peek()));
+                clients[clientIsOn].Socket.WriteAsync(Util.Serialize(cDeck.Peek()));
                 if (iTake > 0)
                 {
-                    clients[clientIsOn].WriteAsync(Util.Serialize(cards.GetNext()));
-                    clients[clientIsOn].WriteAsync(Util.Serialize(cards.GetNext()));
+                    for(int i=0;i<iTake;i++)
+                        clients[clientIsOn].Socket.WriteAsync(Util.Serialize(cards.GetNext()));
                     iTake = 0;
                 }
-                clients[clientIsOn].WriteAsync(Util.Serialize(UnoCard.EndRound));
+                clients[clientIsOn].Socket.WriteAsync(Util.Serialize(UnoCard.EndRound));
+                foreach (UnoPlayer p in clients)
+                {
+                    clients[clientIsOn].Socket.WriteAsync(Util.Serialize(p));
+                }
+                clients[clientIsOn].Socket.WriteAsync(Util.Serialize(UnoPlayer.EndMessage));
                 //blocking call
                 while (!bEndRound) { Thread.Sleep(100); }
                 //reset for next round

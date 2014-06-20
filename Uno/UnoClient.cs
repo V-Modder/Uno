@@ -7,29 +7,227 @@ using System.Linq;
 using System.Text;
 using System.Net.Sockets;
 using System.Windows.Forms;
+using Nito.Async.Sockets;
+using Nito.Async;
+using UnoC;
 
 namespace UnoClient
 {
     public partial class UnoClient : Form
     {
         public event MyEventHandler OnExit;
-        private TcpClient client;
-        private NetworkStream stream;
+        #if !DEBUG
+        private SimpleClientTcpSocket client;
+        #endif
+        private bool bIsAdmin;
+        private int iStarted = 0;
+        private string playerName;
+        private UnoCard stack;
+        private List<UnoCard> cards;
+        private List<UnoPlayer> players;
+        private List<PictureBox> pictures;
+        private PictureBox pcb_stack;
+        private Point MouseDownLocation;
 
-        public UnoClient(string Address)
+        public UnoClient(string Address, string PlayerName, bool IsAdmin=false)
         {
             InitializeComponent();
-            client = new TcpClient(Address, 3456);
-            stream = client.GetStream();
-            //stream.
+            this.playerName = PlayerName;
+            #if !DEBUG
+            client = new SimpleClientTcpSocket();
+            client.PacketArrived += new Action<AsyncResultEventArgs<byte[]>>(client_PacketArrived);
+            client.ShutdownCompleted += new Action<AsyncCompletedEventArgs>(client_ShutdownCompleted);
+            client.ConnectCompleted += new Action<AsyncCompletedEventArgs>(client_ConnectCompleted);
+            client.ConnectAsync(System.Net.IPAddress.Parse(Address), 3456);
+            #endif
+            this.bIsAdmin = IsAdmin;
+            cards = new List<UnoCard>();
+            players = new List<UnoPlayer>();
+            pictures = new List<PictureBox>();
         }
 
-        private void UnoClient_FormClosed(object sender, FormClosedEventArgs e)
+        private void client_ConnectCompleted(AsyncCompletedEventArgs e)
         {
-            if (OnExit != null)
+        }
+
+        private void client_PacketArrived(AsyncResultEventArgs<byte[]> e)
+        {
+            switch (iStarted)
             {
-                OnExit(this, new MyEventArgs("UnoClient Exited"));
+                case 0:
+                    iStarted = 1;
+                    stack = (UnoCard)Util.Deserialize(e.Result);
+                    break;
+                case 1:
+                    using (UnoCard msg = (UnoCard)Util.Deserialize(e.Result))
+                    {
+                        if (msg == UnoCard.EndRound)
+                        {
+                            players.Clear();
+                            iStarted = 2;
+                        }
+                        else
+                            cards.Add(msg);
+                    }
+                    break;
+                case 2:
+                    using (UnoPlayer msg = (UnoPlayer)Util.Deserialize(e.Result))
+                    {
+                        if (msg == UnoPlayer.EndMessage)
+                        {
+                            iStarted = 0;
+                            RefreshDisplay();
+                        }
+                        else
+                        {
+                            players.Add(msg);
+                        }
+                    }
+                    break;
             }
+        }
+
+        private void client_ShutdownCompleted(AsyncCompletedEventArgs e)
+        {
+        }
+
+        private void RefreshDisplay()
+        {
+            int y = pictures.Count;
+            for (int x = y; x < cards.Count; x++)
+            {
+                PictureBox p = new PictureBox();
+                p.Location = new Point(((y + x) * 35) + 12, 12);
+                p.Size = new Size(100, 142);
+                p.Image = cards[x].GetImage();
+                p.SizeMode = PictureBoxSizeMode.StretchImage;
+                p.MouseDown += new MouseEventHandler(UnoCard_MouseDown);
+                p.MouseMove += new MouseEventHandler(UnoCard_MouseMove);
+                p.MouseUp += new MouseEventHandler(UnoCard_MouseUp);
+                p.MouseEnter += new EventHandler(UnoCard_MouseEnter);
+                p.MouseLeave += new EventHandler(UnoCard_MouseLeave);
+                this.Controls.Add(p);
+                p.BringToFront();
+                pictures.Add(p);
+            }
+        }
+
+        private void UnoCard_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button == System.Windows.Forms.MouseButtons.Left)
+            {
+                PictureBox p = (PictureBox)sender;
+                p.Location = new Point(p.Location.X + 10, p.Location.Y + 10);
+                p.Size = new Size(100, 142);
+                MouseDownLocation = e.Location;
+            }
+        }
+
+        private void UnoCard_MouseMove(object sender, MouseEventArgs e)
+        {
+            PictureBox p = (PictureBox)sender;
+            if (e.Button == System.Windows.Forms.MouseButtons.Left)
+            {
+                p.Left = e.X + p.Left - MouseDownLocation.X;
+                p.Top = e.Y + p.Top - MouseDownLocation.Y;
+                if (this.PointToClient(System.Windows.Forms.Control.MousePosition).X >= pcb_stack.Location.X && this.PointToClient(System.Windows.Forms.Control.MousePosition).X < (pcb_stack.Location.X + pcb_stack.Size.Width) &&
+                    this.PointToClient(System.Windows.Forms.Control.MousePosition).Y >= pcb_stack.Location.Y && this.PointToClient(System.Windows.Forms.Control.MousePosition).Y < (pcb_stack.Location.Y + pcb_stack.Size.Height))
+                {
+                    Point delta = new Point();
+                    delta.X = pcb_stack.Location.X - p.Location.X;
+                    delta.Y = pcb_stack.Location.Y - p.Location.Y;
+                    Cursor.Position = new Point(Cursor.Position.X + delta.X, Cursor.Position.Y + delta.Y);
+                    this.Refresh();
+                }
+            }
+        }
+
+        private void UnoCard_MouseUp(object sender, MouseEventArgs e)
+        {
+            PictureBox p = (PictureBox)sender;
+            if (p.Location != pcb_stack.Location)
+            {
+                ResetCards(p);
+            }
+            else
+            {
+                int i = pictures.IndexOf(p);
+                stack = cards[i];
+                cards.RemoveAt(i);
+                this.Controls.Remove(p);
+                pictures.Remove(p);
+                #if !DEBUG
+                client.WriteAsync(Util.Serialize(stack));
+                #endif
+                ResetCards(p);
+            }
+            
+        }
+
+        private void UnoCard_MouseEnter(object sender, EventArgs e)
+        {
+            PictureBox p = (PictureBox)sender;
+            p.Location = new Point(p.Location.X - 10, p.Location.Y - 10);
+            p.Size = new Size(120, 162);
+            p.BringToFront();
+        }
+
+        private void UnoCard_MouseLeave(object sender, EventArgs e)
+        {
+            PictureBox p = (PictureBox)sender;
+            if (p.Location != pcb_stack.Location)
+            {
+                p.Location = new Point(p.Location.X + 10, p.Location.Y + 10);
+                p.Size = new Size(100, 142);
+                ResetCards((PictureBox)sender);
+            }
+        }
+
+        private void ResetCards(PictureBox index)
+        {
+            int startindex = 0;
+            if (pictures.IndexOf(index) >= 0)
+                startindex = pictures.IndexOf(index);
+            for (int i = startindex; i < pictures.Count; i++)
+            {
+                pictures[i].Location = new Point((i * 35) + 12, 12);
+                pictures[i].BringToFront();
+            }
+            pcb_stack.Image = stack.GetImage();
+        }
+
+        private void UnoClient_Load(object sender, EventArgs e)
+        {
+            SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
+            SetStyle(ControlStyles.UserPaint, true);
+            SetStyle(ControlStyles.AllPaintingInWmPaint, true);
+            SetStyle(ControlStyles.DoubleBuffer, true);
+
+            pcb_stack = new PictureBox();
+            pcb_stack.Location = new Point(12, 170);
+            pcb_stack.Size = new Size(100, 142);
+            pcb_stack.SizeMode = PictureBoxSizeMode.StretchImage;
+
+            #if DEBUG
+            UnoCards c = new UnoCards();
+            cards.Add(c.GetNext());
+            cards.Add(c.GetNext());
+            cards.Add(c.GetNext());
+            cards.Add(c.GetNext());
+            stack = c.GetNext();
+            pcb_stack.Image = stack.GetImage();
+            RefreshDisplay();
+            this.Controls.Add(pcb_stack);
+            #endif
+        }
+
+        private void UnoClient_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            #if !DEBUG
+            client.AbortiveClose();
+            #endif
+            if (OnExit != null)
+                OnExit(this, new MyEventArgs("UnoClient Exited"));
         }
     }
 
@@ -47,5 +245,4 @@ namespace UnoClient
             return EventInfo;
         }
     }
-
 }

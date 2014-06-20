@@ -85,6 +85,24 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Nito.Async.Sockets\Nito.Async.Sockets.csproj">
+      <Project>{B412B766-BEC2-407C-A7A1-0E5257511515}</Project>
+      <Name>Nito.Async.Sockets</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Nito.Async\Nito.Async.csproj">
+      <Project>{708763ED-7801-4F2C-B103-4FEBD771769A}</Project>
+      <Name>Nito.Async</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\UnoC\UnoC.csproj">
+      <Project>{91DEA156-61F2-484D-B0AB-360A657FBBF3}</Project>
+      <Name>UnoC</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\UnoSrv\UnoSrv.csproj">
+      <Project>{E951B93F-ACE8-4B63-A2C7-10799E2DC53B}</Project>
+      <Name>UnoSrv</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -48,8 +48,8 @@ namespace UnoC
 
         public UnoCard GetNext()
         {
-            UnoCard c = this.cards.First();
-            this.cards.Remove(c);
+            UnoCard c = this.cards[0];
+            this.cards.RemoveAt(0);
             return c;
         }
 
@@ -68,7 +68,7 @@ namespace UnoC
         }
     }
 
-    public class UnoCard : IEquatable<UnoCard>
+    public class UnoCard : IEquatable<UnoCard>, IDisposable
     {
         private int number;
         private Colors color;
@@ -83,6 +83,10 @@ namespace UnoC
         {
             this.number = num;
             this.color = col;
+        }
+
+        public void Dispose()
+        {
         }
 
         public int Number
