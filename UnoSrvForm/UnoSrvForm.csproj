@@ -5,11 +5,11 @@
     <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{7A53C58E-38CC-4AEF-B0C8-7640D6714A21}</ProjectGuid>
+    <ProjectGuid>{4E73A97B-CD26-4419-9158-4372EBD7B25F}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Uno</RootNamespace>
-    <AssemblyName>Uno</AssemblyName>
+    <RootNamespace>UnoSrvForm</RootNamespace>
+    <AssemblyName>UnoSrvForm</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <TargetFrameworkProfile>Client</TargetFrameworkProfile>
     <FileAlignment>512</FileAlignment>
@@ -20,7 +20,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -46,36 +46,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ChooseBox.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="ChooseBox.Designer.cs">
-      <DependentUpon>ChooseBox.cs</DependentUpon>
-    </Compile>
-    <Compile Include="RichTextBoxExtensions.cs" />
-    <Compile Include="UnoClient.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="UnoClient.Designer.cs">
-      <DependentUpon>UnoClient.cs</DependentUpon>
-    </Compile>
-    <Compile Include="UnoMainForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="UnoMainForm.Designer.cs">
-      <DependentUpon>UnoMainForm.cs</DependentUpon>
-    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <EmbeddedResource Include="ChooseBox.resx">
-      <DependentUpon>ChooseBox.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="UnoClient.resx">
-      <DependentUpon>UnoClient.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="UnoMainForm.resx">
-      <DependentUpon>UnoMainForm.cs</DependentUpon>
-    </EmbeddedResource>
+    <Compile Include="RichTextBoxExtensions.cs" />
+    <Compile Include="UnoSvrForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UnoSvrForm.designer.cs">
+      <DependentUpon>UnoSvrForm.cs</DependentUpon>
+    </Compile>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
@@ -96,18 +75,6 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Nito.Async.Sockets\Nito.Async.Sockets.csproj">
-      <Project>{B412B766-BEC2-407C-A7A1-0E5257511515}</Project>
-      <Name>Nito.Async.Sockets</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Nito.Async\Nito.Async.csproj">
-      <Project>{708763ED-7801-4F2C-B103-4FEBD771769A}</Project>
-      <Name>Nito.Async</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\UnoC\UnoC.csproj">
-      <Project>{91DEA156-61F2-484D-B0AB-360A657FBBF3}</Project>
-      <Name>UnoC</Name>
-    </ProjectReference>
     <ProjectReference Include="..\UnoSvr\UnoSvr.csproj">
       <Project>{A1D56EF5-F956-4A70-A600-FDA6B1D80638}</Project>
       <Name>UnoSvr</Name>

@@ -1,6 +1,6 @@
-﻿namespace UnoClient
+﻿namespace UnoSrvForm
 {
-    partial class UnoClient
+    partial class UnoSvrForm
     {
         /// <summary>
         /// Erforderliche Designervariable.
@@ -28,37 +28,40 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.txt_players = new System.Windows.Forms.RichTextBox();
+            this.components = new System.ComponentModel.Container();
+            this.rtb_logger = new System.Windows.Forms.RichTextBox();
+            this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.SuspendLayout();
             // 
-            // txt_players
+            // rtb_logger
             // 
-            this.txt_players.Location = new System.Drawing.Point(569, 12);
-            this.txt_players.Name = "txt_players";
-            this.txt_players.ReadOnly = true;
-            this.txt_players.Size = new System.Drawing.Size(164, 286);
-            this.txt_players.TabIndex = 0;
-            this.txt_players.Text = "";
+            this.rtb_logger.Location = new System.Drawing.Point(13, 13);
+            this.rtb_logger.Name = "rtb_logger";
+            this.rtb_logger.Size = new System.Drawing.Size(500, 313);
+            this.rtb_logger.TabIndex = 0;
+            this.rtb_logger.Text = "";
             // 
-            // UnoClient
+            // timer1
+            // 
+            this.timer1.Tick += new System.EventHandler(this.timer1_Tick);
+            // 
+            // UnoSvr
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(745, 310);
-            this.Controls.Add(this.txt_players);
-            this.DoubleBuffered = true;
-            this.Name = "UnoClient";
-            this.Text = "UnoClient";
-            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.UnoClient_FormClosing);
-            this.Load += new System.EventHandler(this.UnoClient_Load);
+            this.ClientSize = new System.Drawing.Size(525, 338);
+            this.Controls.Add(this.rtb_logger);
+            this.Name = "UnoSvr";
+            this.Text = "Uno-Server";
+            this.Load += new System.EventHandler(this.Form1_Load);
             this.ResumeLayout(false);
 
         }
 
         #endregion
 
-        private System.Windows.Forms.RichTextBox txt_players;
-
+        private System.Windows.Forms.RichTextBox rtb_logger;
+        private System.Windows.Forms.Timer timer1;
     }
 }
 

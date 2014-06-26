@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
@@ -8,12 +9,14 @@ using System.Text;
 using System.Windows.Forms;
 using System.Diagnostics;
 using UnoClient;
+using UnoServer;
 
 namespace Uno
 {
     public partial class UnoMainForm : Form
     {
-        Process p;
+        private ConcurrentBag<string> Logger;
+        private UnoSrv server;
 
         public UnoMainForm()
         {
@@ -43,12 +46,11 @@ namespace Uno
             }
             else
             {
-                ///ToDo: Start server somehow
-                p = new Process();
-                p.StartInfo.FileName = "UnoSrv.exe";
-                p.StartInfo.Arguments = "-player " + txt_maxPlayer.Text;
-                p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                p.Start();
+                Logger = new ConcurrentBag<string>();
+                server = new UnoSrv(Convert.ToInt32(txt_maxPlayer.Text), ref Logger); 
+                server.Start();
+
+                //start client
                 UnoClient.UnoClient uc = new UnoClient.UnoClient("127.0.0.1", txt_playerName.Text, true);
                 uc.OnExit += new MyEventHandler(uc_OnExit);
                 this.Hide();
@@ -58,8 +60,8 @@ namespace Uno
 
         private void uc_OnExit(object sender, MyEventArgs e)
         {
-            if (p != null)
-                p.Close();
+            if (server.IsRunning)
+                server.Stop();
             this.Close();
         }
     }

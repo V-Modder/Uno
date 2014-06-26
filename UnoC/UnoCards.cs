@@ -8,7 +8,7 @@ using System.Security.Cryptography;
 namespace UnoC
 {
     public enum Colors { Red, Green, Blue, Yellow, Black };
-    public enum SpecialCards { Skip = 10, Turn, TakeTwo };
+    public enum SpecialCards { Skip = 10, Turn, TakeTwo, ChangeColor, ChangeColorPlusFour };
 
     public class UnoCards
     {
@@ -40,8 +40,8 @@ namespace UnoC
 
             for (int i = 0; i < 4; i++)
             {
-                this.cards.Add(new UnoCard(0, Colors.Black));
-                this.cards.Add(new UnoCard(1, Colors.Black));
+                this.cards.Add(new UnoCard((int)SpecialCards.ChangeColor, Colors.Black));
+                this.cards.Add(new UnoCard((int)SpecialCards.ChangeColorPlusFour, Colors.Black));
             }
             this.cards.Shuffle();
         }

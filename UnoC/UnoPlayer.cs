@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Security.Permissions;
 using Nito.Async.Sockets;
 using System.Runtime.Serialization;
 
 namespace UnoC
 {
+    [Serializable]
     public class UnoPlayer : IDisposable, ISerializable
     {
         string name;
@@ -28,17 +30,15 @@ namespace UnoC
         {
         }
 
+        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {
-            // Use the AddValue method to specify serialized values.
             info.AddValue("name", name, typeof(string));
             info.AddValue("cards", cards, typeof(int));
         }
 
-        // The special constructor is used to deserialize values.
         public UnoPlayer(SerializationInfo info, StreamingContext context)
         {
-            // Reset the property value using the GetValue method.
             name = (string)info.GetValue("name", typeof(string));
             cards = (int)info.GetValue("cards", typeof(int));
         }

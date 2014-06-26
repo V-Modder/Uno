@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // Allgemeine Informationen über eine Assembly werden über die folgenden 
 // Attribute gesteuert. Ändern Sie diese Attributwerte, um die Informationen zu ändern,
 // die mit einer Assembly verknüpft sind.
-[assembly: AssemblyTitle("UnoSrv")]
+[assembly: AssemblyTitle("UnoSrvForm")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("UnoSrv")]
+[assembly: AssemblyProduct("UnoSrvForm")]
 [assembly: AssemblyCopyright("Copyright ©  2014")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // Die folgende GUID bestimmt die ID der Typbibliothek, wenn dieses Projekt für COM verfügbar gemacht wird
-[assembly: Guid("b5bb0791-2fc7-4e51-9cff-d13fb02fb28c")]
+[assembly: Guid("14d7e3b2-ee18-4404-89d6-9ff368c902ef")]
 
 // Versionsinformationen für eine Assembly bestehen aus den folgenden vier Werten:
 //
