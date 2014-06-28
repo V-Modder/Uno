@@ -24,7 +24,7 @@ namespace UnoClient
         private List<UnoPlayer> players;
         private List<PictureBox> pictures;
         private PictureBox pcb_stack;
-        private Button btn_start;
+        //private Button btn_start;
         private Point MouseDownLocation;
         #endregion
 
@@ -146,15 +146,7 @@ namespace UnoClient
             pcb_stack.SizeMode = PictureBoxSizeMode.StretchImage;
             this.Controls.Add(pcb_stack);
 
-            if (bIsAdmin)
-            {
-                btn_start = new Button();
-                btn_start.Location = new Point(120, 200);
-                btn_start.Size = new Size(75, 23);
-                btn_start.Text = "Start";
-                btn_start.Click += new EventHandler(btn_start_Click);
-                this.Controls.Add(btn_start);
-            }
+            btn_start.Enabled = bIsAdmin;
 
             #if DEBUG
             UnoCards c = new UnoCards();
