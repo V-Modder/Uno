@@ -27,12 +27,14 @@ namespace Uno
         {
             grb_connect.Enabled = true;
             grb_createSrv.Enabled = false;
+            txt_address.Focus();
         }
 
         private void rdb_createSrv_CheckedChanged(object sender, EventArgs e)
         {
             grb_createSrv.Enabled = true;
             grb_connect.Enabled = false;
+            txt_maxPlayer.Focus();
         }
 
         private void btn_start_Click(object sender, EventArgs e)

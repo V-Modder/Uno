@@ -223,7 +223,6 @@
     <ProjectReference Include="..\Nito.Async.Sockets\Nito.Async.Sockets.csproj">
       <Project>{B412B766-BEC2-407C-A7A1-0E5257511515}</Project>
       <Name>Nito.Async.Sockets</Name>
-      <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

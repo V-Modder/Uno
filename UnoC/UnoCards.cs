@@ -4,6 +4,8 @@ using System.Drawing;
 using System.Linq;
 using System.Resources;
 using System.Security.Cryptography;
+using System.Runtime.Serialization;
+using System.Security.Permissions;
 
 namespace UnoC
 {
@@ -68,7 +70,8 @@ namespace UnoC
         }
     }
 
-    public class UnoCard : IEquatable<UnoCard>, IDisposable
+    [Serializable]
+    public class UnoCard : IEquatable<UnoCard>, IDisposable, ISerializable
     {
         private int number;
         private Colors color;
@@ -89,6 +92,19 @@ namespace UnoC
         {
         }
 
+        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        public void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            info.AddValue("number", this.number, typeof(int));
+            info.AddValue("color", this.color, typeof(Colors));
+        }
+
+        public UnoCard(SerializationInfo info, StreamingContext context)
+        {
+            this.number = (int)info.GetValue("number", typeof(int));
+            this.color = (Colors)info.GetValue("color", typeof(int));
+        }
+
         public int Number
         {
             get { return this.number; }
@@ -107,13 +123,10 @@ namespace UnoC
 
         public bool Equals(UnoCard other)
         {
-            if (other == null)
+            if ((Object)other == null)
                 return false;
 
-            if (this.number == other.number && this.color == other.color)
-                return true;
-            else
-                return false;
+            return (this.number == other.number && this.color == other.color);
         }
 
         public Image GetImage()
@@ -128,10 +141,10 @@ namespace UnoC
                 return false;
 
             UnoCard UnoCardObj = obj as UnoCard;
-            if (UnoCardObj == null)
+            if ((Object)UnoCardObj == null)
                 return false;
             else
-                return Equals(UnoCardObj);
+                return (this.number == UnoCardObj.number && this.color == UnoCardObj.color);
         }
 
         public override int GetHashCode()

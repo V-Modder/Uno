@@ -6,6 +6,8 @@ using Nito.Async;
 using Nito.Async.Sockets;
 using UnoC;
 
+///ToDo: Check clientIsOn cycle
+
 namespace UnoServer
 {
     public class UnoSrv
@@ -52,9 +54,12 @@ namespace UnoServer
             try
             {
                 // Save the new child socket connection
-                clients.Add(new UnoPlayer(socket));
-                socket.PacketArrived += (args) => ChildSocket_PacketArrived(socket, args);
-                socket.ShutdownCompleted += (args) => ChildSocket_ShutdownCompleted(socket, args);
+                if (socket != null)
+                {
+                    clients.Add(new UnoPlayer(socket));
+                    socket.PacketArrived += (args) => ChildSocket_PacketArrived(socket, args);
+                    socket.ShutdownCompleted += (args) => ChildSocket_ShutdownCompleted(socket, args);
+                }
                 // Display the connection information
                 lock (logger)
                 {
@@ -77,8 +82,8 @@ namespace UnoServer
 
         private void ChildSocket_PacketArrived(SimpleServerChildTcpSocket socket, AsyncResultEventArgs<byte[]> e)
         {
-            try
-            {
+            //try
+            //{
                 // Check for errors
                 if (e.Error != null)
                 {
@@ -108,6 +113,8 @@ namespace UnoServer
                         {
                             logger.Add("Client " + clients[clientIsOn++].Name + " connected");
                         }
+                        if (clientIsOn == clients.Count)
+                            clientIsOn = 0;
                         return;
                     }
                     UnoCard msg = (UnoCard)Util.Deserialize(e.Result);
@@ -163,19 +170,15 @@ namespace UnoServer
                         }
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                lock (logger)
-                {
-                    logger.Add("Error reading from socket " + socket.RemoteEndPoint.ToString() + ": [" + ex.GetType().Name + "] " + ex.Message + Environment.NewLine);
-                }
-                ResetChildSocket(socket);
-            }
-            finally
-            {
-                //RefreshDisplay();
-            }
+            //}
+            //catch (Exception ex)
+            //{
+            //    lock (logger)
+            //    {
+            //        logger.Add("Error reading from socket " + socket.RemoteEndPoint.ToString() + ": [" + ex.GetType().Name + "] " + ex.Message + Environment.NewLine);
+            //    }
+            //    ResetChildSocket(socket);
+            //}
         }
 
         private void ChildSocket_ShutdownCompleted(object sender, System.ComponentModel.AsyncCompletedEventArgs e)
@@ -312,18 +315,33 @@ namespace UnoServer
                 Thread.Sleep(100);
             }
 
-            //Share all Playername's
-
             //Share cards to all players + deck
             cards = new UnoCards();
+            Stack<UnoCard>[] clientcards = new Stack<UnoCard>[clients.Count];  
             for (int i = 0; i < clients.Count * 7; i++)
             {
-                clients[i % clients.Count].Socket.WriteAsync(Util.Serialize(cards.GetNext()));
+                if (i < clients.Count)
+                    clientcards[i] = new Stack<UnoCard>();
+                clientcards[i % clients.Count].Push(cards.GetNext());
                 if (i >= (clients.Count * 6) - 1)
                     clients[i % clients.Count].Cards = 7;
             }
             cDeck.Push(cards.GetNext());
-
+            for (int i = 0; i < clients.Count; i++)
+            {
+                //Send deck card
+                clients[i].Socket.WriteAsync(Util.Serialize(cDeck.Peek()));
+                //Send all cards
+                for (int x = 0; x < 7; x++)
+                    clients[i].Socket.WriteAsync(Util.Serialize(clientcards[i].Pop()));
+                clients[i].Socket.WriteAsync(Util.Serialize(UnoCard.EndRound));
+                clientcards[i].Clear();
+                //Send all players
+                for (int x = 0; x < clients.Count; x++)
+                    clients[i].Socket.WriteAsync(Util.Serialize(clients[x]));
+                clients[i].Socket.WriteAsync(Util.Serialize(UnoPlayer.EndMessage));
+            }
+            while (true) ;
             //Loop until somebody has won
             while (!bEndGame)
             {

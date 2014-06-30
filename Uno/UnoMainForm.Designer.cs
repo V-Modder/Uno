@@ -48,7 +48,7 @@
             this.btn_start.Location = new System.Drawing.Point(95, 227);
             this.btn_start.Name = "btn_start";
             this.btn_start.Size = new System.Drawing.Size(75, 23);
-            this.btn_start.TabIndex = 0;
+            this.btn_start.TabIndex = 3;
             this.btn_start.Text = "Start";
             this.btn_start.UseVisualStyleBackColor = true;
             this.btn_start.Click += new System.EventHandler(this.btn_start_Click);
@@ -82,7 +82,7 @@
             this.grb_connect.Location = new System.Drawing.Point(32, 36);
             this.grb_connect.Name = "grb_connect";
             this.grb_connect.Size = new System.Drawing.Size(200, 59);
-            this.grb_connect.TabIndex = 3;
+            this.grb_connect.TabIndex = 0;
             this.grb_connect.TabStop = false;
             this.grb_connect.Text = "Verbinde zu Spiel";
             // 
@@ -107,7 +107,7 @@
             this.txt_playerName.Location = new System.Drawing.Point(104, 177);
             this.txt_playerName.Name = "txt_playerName";
             this.txt_playerName.Size = new System.Drawing.Size(100, 20);
-            this.txt_playerName.TabIndex = 4;
+            this.txt_playerName.TabIndex = 2;
             // 
             // label1
             // 
@@ -127,7 +127,7 @@
             this.grb_createSrv.Location = new System.Drawing.Point(32, 101);
             this.grb_createSrv.Name = "grb_createSrv";
             this.grb_createSrv.Size = new System.Drawing.Size(200, 70);
-            this.grb_createSrv.TabIndex = 6;
+            this.grb_createSrv.TabIndex = 1;
             this.grb_createSrv.TabStop = false;
             this.grb_createSrv.Text = "Server erstellen";
             // 

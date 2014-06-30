@@ -17,6 +17,7 @@ namespace UnoClient
         private SimpleClientTcpSocket client;
         #endif
         private bool bIsAdmin;
+        private bool bHasCards = false;
         private int iStarted = 0;
         private string playerName;
         private UnoCard stack;
@@ -24,7 +25,6 @@ namespace UnoClient
         private List<UnoPlayer> players;
         private List<PictureBox> pictures;
         private PictureBox pcb_stack;
-        //private Button btn_start;
         private Point MouseDownLocation;
         #endregion
 
@@ -166,7 +166,11 @@ namespace UnoClient
             client.AbortiveClose();
             #endif
             if (OnExit != null)
+            {
                 OnExit(this, new MyEventArgs("UnoClient Exited"));
+                OnExit = null;
+            }
+            this.Close();
         }
         #endregion
 
@@ -195,29 +199,29 @@ namespace UnoClient
                     stack = (UnoCard)Util.Deserialize(e.Result);
                     break;
                 case 1:
-                    using (UnoCard msg = (UnoCard)Util.Deserialize(e.Result))
+                    UnoCard msgC = (UnoCard)Util.Deserialize(e.Result);
+                    if (msgC != null)
                     {
-                        if (msg == UnoCard.EndRound)
+                        if (msgC == UnoCard.EndRound)
                         {
                             players.Clear();
                             iStarted = 2;
                         }
                         else
-                            cards.Add(msg);
+                            cards.Add(msgC);
                     }
                     break;
                 case 2:
-                    using (UnoPlayer msg = (UnoPlayer)Util.Deserialize(e.Result))
+                    UnoPlayer msgP = (UnoPlayer)Util.Deserialize(e.Result);
+                    if (msgP != null)
                     {
-                        if (msg == UnoPlayer.EndMessage)
+                        if (msgP == UnoPlayer.EndMessage)
                         {
                             iStarted = 0;
                             RefreshDisplay();
                         }
                         else
-                        {
-                            players.Add(msg);
-                        }
+                            players.Add(msgP);
                     }
                     break;
             }
