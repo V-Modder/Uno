@@ -1,14 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
+using System.Net;
 using System.Windows.Forms;
-using System.Diagnostics;
-using UnoClient;
 using UnoServer;
 
 namespace Uno
@@ -17,6 +10,7 @@ namespace Uno
     {
         private ConcurrentBag<string> Logger;
         private UnoSrv server;
+        private UnoClient.UnoClient uc;
 
         public UnoMainForm()
         {
@@ -41,8 +35,7 @@ namespace Uno
         {
             if (rdb_connect.Checked == true)
             {
-                UnoClient.UnoClient uc = new UnoClient.UnoClient(txt_address.Text, txt_playerName.Text);
-                uc.OnExit += new MyEventHandler(uc_OnExit);
+                uc = new UnoClient.UnoClient(txt_address.Text, txt_playerName.Text);
                 this.Hide();
                 uc.Show();
             }
@@ -53,18 +46,52 @@ namespace Uno
                 server.Start();
 
                 //start client
-                UnoClient.UnoClient uc = new UnoClient.UnoClient("127.0.0.1", txt_playerName.Text, true);
-                uc.OnExit += new MyEventHandler(uc_OnExit);
+                uc = new UnoClient.UnoClient("127.0.0.1", txt_playerName.Text, true);
                 this.Hide();
                 uc.Show();
             }
         }
 
-        private void uc_OnExit(object sender, MyEventArgs e)
+        private void tmr_closed_Tick(object sender, EventArgs e)
         {
-            if (server.IsRunning)
-                server.Stop();
-            this.Close();
+            if (!uc.IsRunning)
+            {
+                if (server.IsRunning)
+                    server.Stop();
+                this.Close();
+            }
+        }
+
+        private void txt_address_Leave(object sender, EventArgs e)
+        {
+            IPAddress ip;
+            if (!IPAddress.TryParse(txt_address.Text, out ip))
+            {
+                TextBox tb = (TextBox)sender;
+                ToolTip tt = new ToolTip();
+                tt.ToolTipIcon = ToolTipIcon.Error;
+                tt.IsBalloon = true;
+                tt.ToolTipTitle = "Error";
+                tt.Show("Please type in a valid address", tb, 20, -70, 2500);
+                tb.Focus();
+                tb.SelectAll();
+            }
+        }
+
+        private void txt_maxPlayer_Leave(object sender, EventArgs e)
+        {
+            int x;
+            if(!int.TryParse(txt_maxPlayer.Text, out x) || x < 2 || x > 10)
+            {
+                TextBox tb = (TextBox)sender;
+                ToolTip tt = new ToolTip();
+                tt.ToolTipIcon = ToolTipIcon.Error;
+                tt.IsBalloon = true;
+                tt.ToolTipTitle = "Error";
+                tt.Show("Playercount must be between 2-10", tb, 20, -70, 2500);
+                tb.Focus();
+                tb.SelectAll();
+            }
         }
     }
 }

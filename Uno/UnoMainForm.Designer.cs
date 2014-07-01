@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.btn_start = new System.Windows.Forms.Button();
             this.rdb_createSrv = new System.Windows.Forms.RadioButton();
             this.rdb_connect = new System.Windows.Forms.RadioButton();
@@ -39,6 +40,7 @@
             this.grb_createSrv = new System.Windows.Forms.GroupBox();
             this.lbl_maxPlayer = new System.Windows.Forms.Label();
             this.txt_maxPlayer = new System.Windows.Forms.TextBox();
+            this.tmr_closed = new System.Windows.Forms.Timer(this.components);
             this.grb_connect.SuspendLayout();
             this.grb_createSrv.SuspendLayout();
             this.SuspendLayout();
@@ -101,6 +103,7 @@
             this.txt_address.Name = "txt_address";
             this.txt_address.Size = new System.Drawing.Size(100, 20);
             this.txt_address.TabIndex = 0;
+            this.txt_address.Leave += new System.EventHandler(this.txt_address_Leave);
             // 
             // txt_playerName
             // 
@@ -146,6 +149,11 @@
             this.txt_maxPlayer.Name = "txt_maxPlayer";
             this.txt_maxPlayer.Size = new System.Drawing.Size(100, 20);
             this.txt_maxPlayer.TabIndex = 0;
+            this.txt_maxPlayer.Leave += new System.EventHandler(this.txt_maxPlayer_Leave);
+            // 
+            // tmr_closed
+            // 
+            this.tmr_closed.Tick += new System.EventHandler(this.tmr_closed_Tick);
             // 
             // UnoMainForm
             // 
@@ -183,6 +191,7 @@
         private System.Windows.Forms.GroupBox grb_createSrv;
         private System.Windows.Forms.Label lbl_maxPlayer;
         private System.Windows.Forms.TextBox txt_maxPlayer;
+        private System.Windows.Forms.Timer tmr_closed;
     }
 }
 

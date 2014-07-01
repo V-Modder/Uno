@@ -12,12 +12,11 @@ namespace UnoClient
     public partial class UnoClient : Form
     {
         #region Class-Variables
-        public event MyEventHandler OnExit;
         #if !DEBUG
         private SimpleClientTcpSocket client;
         #endif
+        private bool isRunning;
         private bool bIsAdmin;
-        private bool bHasCards = false;
         private int iStarted = 0;
         private string playerName;
         private UnoCard stack;
@@ -32,18 +31,19 @@ namespace UnoClient
         public UnoClient(string Address, string PlayerName, bool IsAdmin=false)
         {
             InitializeComponent();
+            this.isRunning = true;
             this.playerName = PlayerName;
             #if !DEBUG
-            client = new SimpleClientTcpSocket();
-            client.PacketArrived += new Action<AsyncResultEventArgs<byte[]>>(client_PacketArrived);
-            client.ShutdownCompleted += new Action<AsyncCompletedEventArgs>(client_ShutdownCompleted);
-            client.ConnectCompleted += new Action<AsyncCompletedEventArgs>(client_ConnectCompleted);
-            client.ConnectAsync(System.Net.IPAddress.Parse(Address), 3456);
+            this.client = new SimpleClientTcpSocket();
+            this.client.PacketArrived += new Action<AsyncResultEventArgs<byte[]>>(client_PacketArrived);
+            this.client.ShutdownCompleted += new Action<AsyncCompletedEventArgs>(client_ShutdownCompleted);
+            this.client.ConnectCompleted += new Action<AsyncCompletedEventArgs>(client_ConnectCompleted);
+            this.client.ConnectAsync(System.Net.IPAddress.Parse(Address), 3456);
             #endif
             this.bIsAdmin = IsAdmin;
-            cards = new List<UnoCard>();
-            players = new List<UnoPlayer>();
-            pictures = new List<PictureBox>();
+            this.cards = new List<UnoCard>();
+            this.players = new List<UnoPlayer>();
+            this.pictures = new List<PictureBox>();
         }
 
         private void btn_start_Click(object sender, EventArgs e)
@@ -162,15 +162,11 @@ namespace UnoClient
 
         private void UnoClient_FormClosing(object sender, FormClosingEventArgs e)
         {
+            isRunning = false;
             #if !DEBUG
             client.AbortiveClose();
             #endif
-            if (OnExit != null)
-            {
-                OnExit(this, new MyEventArgs("UnoClient Exited"));
-                OnExit = null;
-            }
-            this.Close();
+            e.Cancel = false;
         }
         #endregion
 
@@ -256,9 +252,9 @@ namespace UnoClient
             foreach (UnoPlayer pp in players)
             {
                 if (pp.Cards == 1)
-                    txt_players.AppendText(pp.Name + "\t" + pp.Cards.ToString(), Color.Red);
+                    txt_players.AppendText(pp.Name + "\t" + pp.Cards.ToString() + Environment.NewLine, Color.Red);
                 else 
-                    txt_players.AppendText(pp.Name + "\t" + pp.Cards.ToString(), Color.Black);
+                    txt_players.AppendText(pp.Name + "\t" + pp.Cards.ToString() + Environment.NewLine, Color.Black);
             }
         }
 
@@ -274,23 +270,11 @@ namespace UnoClient
             }
             pcb_stack.Image = stack.GetImage();
         }
+
+        public bool IsRunning
+        {
+            get { return isRunning; }
+        }
         #endregion
-    }
-
-    public delegate void MyEventHandler(object source, MyEventArgs e);
-
-    public class MyEventArgs : EventArgs
-    {
-        private string EventInfo;
-
-        public MyEventArgs(string Text)
-        {
-            EventInfo = Text;
-        }
-
-        public string GetInfo()
-        {
-            return EventInfo;
-        }
     }
 }
