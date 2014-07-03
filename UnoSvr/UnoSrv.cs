@@ -89,7 +89,7 @@ namespace UnoServer
                 {
                     lock (logger)
                     {
-                        logger.Add("Client socket error during Read from " + socket.RemoteEndPoint.ToString() + ": [" + e.Error.GetType().Name + "] " + e.Error.Message + Environment.NewLine);
+                        logger.Add("Client socket error during Read from " + socket.RemoteEndPoint.ToString() + ": [" + e.Error.GetType().Name + "] " + e.Error.Message + Environment.NewLine + e.Error.StackTrace);
                     }
                     ResetChildSocket(socket);
                 }
@@ -105,25 +105,24 @@ namespace UnoServer
                 }
                 else
                 {
-                    UnoPlayer player = (UnoPlayer)Util.Deserialize(e.Result);
+                    UnoPlayer player = Util.Deserialize(e.Result) as UnoPlayer;
                     if (player != null)
                     {
-                        clients[clientIsOn].Name = player.Name;
+                        int sock = SearchSocket(socket);
+                        clients[sock].Name = player.Name;
                         lock (logger)
                         {
-                            logger.Add("Client " + clients[clientIsOn++].Name + " connected");
+                            logger.Add("Client " + clients[sock].Name + " connected");
                         }
-                        if (clientIsOn == clients.Count)
-                            clientIsOn = 0;
                         return;
                     }
-                    UnoCard msg = (UnoCard)Util.Deserialize(e.Result);
+                    UnoCard msg = Util.Deserialize(e.Result) as UnoCard;
                     if (!bStart)
                     {
                         if (socket.LocalEndPoint.Address == ListeningSocket.LocalEndPoint.Address && msg == UnoCard.StartRound)
                             bStart = true;
                     }
-                    else if (socket == clients[clientIsOn].Socket)
+                    else if (socket.RemoteEndPoint.Port == clients[clientIsOn].Socket.RemoteEndPoint.Port) 
                     {
                         if (msg == UnoCard.EndRound)
                         {
@@ -207,20 +206,13 @@ namespace UnoServer
             // RefreshDisplay();
         }
 
-        private bool RemoveElement(SimpleServerChildTcpSocket s)
+        private void RemoveElement(SimpleServerChildTcpSocket s)
         {
             if (s != null)
             {
-                foreach (UnoPlayer p in clients)
-                {
-                    if (p.Socket == s)
-                    {
-                        s.AbortiveClose();
-                        return clients.Remove(p);
-                    }
-                }
+                s.AbortiveClose();
+                clients.RemoveAt(SearchSocket(s));
             }
-            return false;
         }
 
         private bool RemoveElement(UnoPlayer p)
@@ -259,7 +251,7 @@ namespace UnoServer
         {
             for (int i = 0; i < clients.Count; i++)
             {
-                if (s == clients[i].Socket)
+                if (s.RemoteEndPoint.Port == clients[i].Socket.RemoteEndPoint.Port)
                     return i;
             }
             return 99;
@@ -310,7 +302,7 @@ namespace UnoServer
         private void StartGame()
         {
             //Wait for clients to connect
-            while (clients.Count < clientsToUse || bStart)
+            while ((clients.Count < clientsToUse || (bStart && clients.Count >= 2)) && clientIsOn == 0)
             {
                 Thread.Sleep(100);
             }
@@ -337,12 +329,13 @@ namespace UnoServer
                 clients[i].Socket.WriteAsync(Util.Serialize(UnoCard.EndRound));
                 clientcards[i].Clear();
                 //Send all players
-                for (int x = 0; x < clients.Count; x++)
-                    clients[i].Socket.WriteAsync(Util.Serialize(clients[x]));
+                //for (int x = 0; x < clients.Count; x++)
+                //    clients[i].Socket.WriteAsync(Util.Serialize(clients[x]));
                 clients[i].Socket.WriteAsync(Util.Serialize(UnoPlayer.EndMessage));
             }
-            while (true) ;
+            //while (true) ;
             //Loop until somebody has won
+            bStart = true;
             while (!bEndGame)
             {
                 clients[clientIsOn].Socket.WriteAsync(Util.Serialize(cDeck.Peek()));

@@ -38,6 +38,7 @@ namespace Uno
                 uc = new UnoClient.UnoClient(txt_address.Text, txt_playerName.Text);
                 this.Hide();
                 uc.Show();
+                tmr_closed.Enabled = true;
             }
             else
             {
@@ -49,6 +50,7 @@ namespace Uno
                 uc = new UnoClient.UnoClient("127.0.0.1", txt_playerName.Text, true);
                 this.Hide();
                 uc.Show();
+                tmr_closed.Enabled = true;
             }
         }
 
@@ -56,7 +58,7 @@ namespace Uno
         {
             if (!uc.IsRunning)
             {
-                if (server.IsRunning)
+                if (server != null && server.IsRunning)
                     server.Stop();
                 this.Close();
             }
@@ -64,6 +66,8 @@ namespace Uno
 
         private void txt_address_Leave(object sender, EventArgs e)
         {
+            if (txt_address.Text == "")
+                return;
             IPAddress ip;
             if (!IPAddress.TryParse(txt_address.Text, out ip))
             {
@@ -80,6 +84,8 @@ namespace Uno
 
         private void txt_maxPlayer_Leave(object sender, EventArgs e)
         {
+            if (txt_maxPlayer.Text == "")
+                return;
             int x;
             if(!int.TryParse(txt_maxPlayer.Text, out x) || x < 2 || x > 10)
             {

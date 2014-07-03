@@ -22,8 +22,9 @@ namespace UnoC
 
         public UnoPlayer(SimpleServerChildTcpSocket s)
         {
-            socket = s;
-            hasLastCard = false;
+            this.socket = s;
+            this.hasLastCard = false;
+            this.name = "";
         }
 
         public UnoPlayer(string Name, int Cards=0)

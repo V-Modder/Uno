@@ -132,7 +132,12 @@ namespace UnoC
         public Image GetImage()
         {
             ResourceManager rm = UnoC.Properties.Resources.ResourceManager;
-            return (Bitmap)rm.GetObject(this.color.ToString() + "_" + this.number);
+            string s = "";
+            if (this.color == Colors.Black && this.number >= 13)
+                s = this.color.ToString() + "_" + (this.number - 13).ToString();
+            else
+                s = this.color.ToString() + "_" + this.number.ToString();
+            return (Bitmap)rm.GetObject(s);
         }
 
         public override bool Equals(Object obj)

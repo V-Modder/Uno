@@ -17,6 +17,7 @@ namespace UnoClient
         #endif
         private bool isRunning;
         private bool bIsAdmin;
+        private bool bHasEntered;
         private int iStarted = 0;
         private string playerName;
         private UnoCard stack;
@@ -25,6 +26,7 @@ namespace UnoClient
         private List<PictureBox> pictures;
         private PictureBox pcb_stack;
         private Point MouseDownLocation;
+        private System.Drawing.Color[] col;
         #endregion
 
         #region Form-Control
@@ -32,6 +34,7 @@ namespace UnoClient
         {
             InitializeComponent();
             this.isRunning = true;
+            this.bHasEntered = false;
             this.playerName = PlayerName;
             #if !DEBUG
             this.client = new SimpleClientTcpSocket();
@@ -44,6 +47,24 @@ namespace UnoClient
             this.cards = new List<UnoCard>();
             this.players = new List<UnoPlayer>();
             this.pictures = new List<PictureBox>();
+            col = new System.Drawing.Color[10];
+            col[0] = Color.LightBlue;
+            col[1] = Color.LightYellow;
+            col[2] = Color.LightCyan;
+            col[3] = Color.LightGreen;
+            col[4] = Color.LightSalmon;
+            col[5] = Color.LightCoral;
+            col[6] = Color.LightSeaGreen;
+            col[7] = Color.LightGoldenrodYellow;
+            col[8] = Color.LightCoral;
+            col[9] = Color.Violet;
+        }
+
+        private void btn_recieve_Click(object sender, EventArgs e)
+        {
+            iStarted = 3;
+            client.WriteAsync(Util.Serialize(UnoCard.GiveCard));
+            btn_recieve.Enabled = false;
         }
 
         private void btn_start_Click(object sender, EventArgs e)
@@ -51,6 +72,7 @@ namespace UnoClient
             #if !DEBUG
             client.WriteAsync(Util.Serialize(UnoCard.StartRound));
             #endif
+            btn_start.Visible = false;
         }
 
         private void UnoCard_MouseDown(object sender, MouseEventArgs e)
@@ -71,15 +93,21 @@ namespace UnoClient
             {
                 p.Left = e.X + p.Left - MouseDownLocation.X;
                 p.Top = e.Y + p.Top - MouseDownLocation.Y;
-                if (this.PointToClient(System.Windows.Forms.Control.MousePosition).X >= pcb_stack.Location.X && this.PointToClient(System.Windows.Forms.Control.MousePosition).X < (pcb_stack.Location.X + pcb_stack.Size.Width) &&
-                    this.PointToClient(System.Windows.Forms.Control.MousePosition).Y >= pcb_stack.Location.Y && this.PointToClient(System.Windows.Forms.Control.MousePosition).Y < (pcb_stack.Location.Y + pcb_stack.Size.Height))
+                if (this.PointToClient(System.Windows.Forms.Control.MousePosition).X >= pcb_stack.Location.X &&
+                    this.PointToClient(System.Windows.Forms.Control.MousePosition).X < (pcb_stack.Location.X + pcb_stack.Size.Width) &&
+                    this.PointToClient(System.Windows.Forms.Control.MousePosition).Y >= pcb_stack.Location.Y &&
+                    this.PointToClient(System.Windows.Forms.Control.MousePosition).Y < (pcb_stack.Location.Y + pcb_stack.Size.Height) &&
+                    !this.bHasEntered)
                 {
+                    bHasEntered = true;
                     Point delta = new Point();
                     delta.X = pcb_stack.Location.X - p.Location.X;
                     delta.Y = pcb_stack.Location.Y - p.Location.Y;
                     Cursor.Position = new Point(Cursor.Position.X + delta.X, Cursor.Position.Y + delta.Y);
                     this.Refresh();
                 }
+                else
+                    bHasEntered = false;
             }
         }
 
@@ -146,7 +174,7 @@ namespace UnoClient
             pcb_stack.SizeMode = PictureBoxSizeMode.StretchImage;
             this.Controls.Add(pcb_stack);
 
-            btn_start.Enabled = bIsAdmin;
+            btn_start.Visible = bIsAdmin;
 
             #if DEBUG
             UnoCards c = new UnoCards();
@@ -175,10 +203,7 @@ namespace UnoClient
         {
             try
             {
-                if (!e.Cancelled)
-                {
-                    client.WriteAsync(Util.Serialize(new UnoPlayer(this.playerName)));
-                }
+                client.WriteAsync(Util.Serialize(new UnoPlayer(this.playerName)));
             }
             catch (Exception ex)
             {
@@ -195,30 +220,46 @@ namespace UnoClient
                     stack = (UnoCard)Util.Deserialize(e.Result);
                     break;
                 case 1:
-                    UnoCard msgC = (UnoCard)Util.Deserialize(e.Result);
-                    if (msgC != null)
+                    using (UnoCard msgC = (UnoCard)Util.Deserialize(e.Result))
                     {
-                        if (msgC == UnoCard.EndRound)
+                        if (msgC != null)
                         {
-                            players.Clear();
-                            iStarted = 2;
+                            if (msgC == UnoCard.EndRound)
+                            {
+                                players.Clear();
+                                iStarted = 2;
+                            }
+                            else
+                                cards.Add(msgC);
                         }
-                        else
-                            cards.Add(msgC);
                     }
                     break;
                 case 2:
-                    UnoPlayer msgP = (UnoPlayer)Util.Deserialize(e.Result);
-                    if (msgP != null)
+                    using (UnoPlayer msgP = (UnoPlayer)Util.Deserialize(e.Result))
                     {
-                        if (msgP == UnoPlayer.EndMessage)
+                        if (msgP != null)
                         {
-                            iStarted = 0;
+                            if (msgP == UnoPlayer.EndMessage)
+                            {
+                                iStarted = 0;
+                                RefreshDisplay();
+                                btn_recieve.Enabled = true;
+                            }
+                            else
+                                players.Add(msgP);
+                        }
+                    }
+                    break;
+                case 3:
+                    using (UnoCard msgC = (UnoCard)Util.Deserialize(e.Result))
+                    {
+                        if (msgC != null)
+                        {
+                            cards.Add(msgC);
                             RefreshDisplay();
                         }
-                        else
-                            players.Add(msgP);
                     }
+                    iStarted = 0;
                     break;
             }
         }
@@ -248,14 +289,23 @@ namespace UnoClient
                 p.BringToFront();
                 pictures.Add(p);
             }
+            ResetCards(pictures[0]);
             txt_players.Text = "";
-            foreach (UnoPlayer pp in players)
+            for (int i = 0; i < players.Count;i++)
             {
-                if (pp.Cards == 1)
-                    txt_players.AppendText(pp.Name + "\t" + pp.Cards.ToString() + Environment.NewLine, Color.Red);
-                else 
-                    txt_players.AppendText(pp.Name + "\t" + pp.Cards.ToString() + Environment.NewLine, Color.Black);
+                if (players[i].Cards == 1)
+                    txt_players.AppendText((players[i].Name + "\t" + players[i].Cards.ToString()).PadRight(50, ' ') + Environment.NewLine, Color.Red);
+                else
+                    txt_players.AppendText((players[i].Name + "\t" + players[i].Cards.ToString()).PadRight(50, ' ') + Environment.NewLine, Color.Black);
+                txt_players.Select(txt_players.GetFirstCharIndexFromLine(i), txt_players.Lines[i].Length);
+                txt_players.SelectionBackColor = col[i];
+                txt_players.Select(txt_players.GetFirstCharIndexFromLine(i), players[i].Name.Length);
+                if (players[i].Name == this.playerName && players[i].Cards == this.cards.Count)
+                    txt_players.SelectionFont = new Font(txt_players.SelectionFont.FontFamily, txt_players.SelectionFont.Size, FontStyle.Underline | FontStyle.Bold);
+                txt_players.ScrollToCaret();
             }
+            txt_players.Select(0, 0);
+            this.Refresh();
         }
 
         private void ResetCards(PictureBox index)
