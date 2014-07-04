@@ -63,6 +63,11 @@ namespace UnoC
                 return false;
         }
 
+        public void Return(UnoCard card)
+        {
+            cards.Add(card);
+        }
+
         public void ReInit(UnoCard[] card)
         {
             this.cards.AddRange(card);
@@ -81,6 +86,7 @@ namespace UnoC
         public static UnoCard EndRound = new UnoCard(22, Colors.Black);
         public static UnoCard Uno = new UnoCard(23, Colors.Black);
         public static UnoCard Won = new UnoCard(24, Colors.Black);
+        public static UnoCard PlusTwoBack = new UnoCard(25, Colors.Black);
 
         public UnoCard(int num, Colors col)
         {

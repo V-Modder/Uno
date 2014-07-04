@@ -18,7 +18,8 @@ namespace UnoClient
         private bool isRunning;
         private bool bIsAdmin;
         private bool bHasEntered;
-        private int iStarted = 0;
+        private int iStarted;
+        private int iTakenCards;
         private string playerName;
         private UnoCard stack;
         private List<UnoCard> cards;
@@ -33,6 +34,8 @@ namespace UnoClient
         public UnoClient(string Address, string PlayerName, bool IsAdmin=false)
         {
             InitializeComponent();
+            this.iStarted = 0;
+            this.iTakenCards = 0;
             this.isRunning = true;
             this.bHasEntered = false;
             this.playerName = PlayerName;
@@ -123,6 +126,18 @@ namespace UnoClient
                 int i = pictures.IndexOf(p);
                 if (cards[i].Color == stack.Color || cards[i].Number == stack.Number || cards[i].Color == Colors.Black)
                 {
+                    if (lbl_warnplustwo.Visible && cards[i].Number == (int)UnoC.SpecialCards.TakeTwo && i < cards.Count - iTakenCards)
+                    {
+                        client.WriteAsync(Util.Serialize(UnoCard.PlusTwoBack));
+                        for (int ii = cards.Count - 1; ii >= cards.Count - iTakenCards; ii--)
+                        {
+                            client.WriteAsync(Util.Serialize(cards[ii]));
+                            cards.RemoveAt(i);
+                            this.Controls.Remove(pictures[i]);
+                            pictures.RemoveAt(i);
+                        }
+                        client.WriteAsync(Util.Serialize(UnoCard.EndRound));
+                    }
                     stack = cards[i];
                     cards.RemoveAt(i);
                     this.Controls.Remove(p);
@@ -136,6 +151,7 @@ namespace UnoClient
                     #if !DEBUG
                     client.WriteAsync(Util.Serialize(stack));
                     #endif
+                    lbl_warnplustwo.Visible = false;
                 }
                 ResetCards(p);
             }
@@ -218,6 +234,8 @@ namespace UnoClient
                 case 0:
                     iStarted = 1;
                     stack = (UnoCard)Util.Deserialize(e.Result);
+                    if (stack.Number == (int)UnoC.SpecialCards.TakeTwo)
+                        lbl_warnplustwo.Visible = true;
                     break;
                 case 1:
                     using (UnoCard msgC = (UnoCard)Util.Deserialize(e.Result))
@@ -230,7 +248,10 @@ namespace UnoClient
                                 iStarted = 2;
                             }
                             else
+                            {
+                                iTakenCards++;
                                 cards.Add(msgC);
+                            }
                         }
                     }
                     break;
@@ -244,6 +265,7 @@ namespace UnoClient
                                 iStarted = 0;
                                 RefreshDisplay();
                                 btn_recieve.Enabled = true;
+                                btn_start.Visible = false;
                             }
                             else
                                 players.Add(msgP);

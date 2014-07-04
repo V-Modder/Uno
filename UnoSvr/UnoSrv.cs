@@ -6,8 +6,6 @@ using Nito.Async;
 using Nito.Async.Sockets;
 using UnoC;
 
-///ToDo: Check clientIsOn cycle
-
 namespace UnoServer
 {
     public class UnoSrv
@@ -20,6 +18,7 @@ namespace UnoServer
         private bool bEndRound = false;
         private bool bEndGame = false;
         private bool bDirection = false; //false = clockvise
+        private bool bReturnCards = false;
         private int iTake = 0;
         private int clientIsOn = 0;
         private UnoCards cards;
@@ -119,14 +118,26 @@ namespace UnoServer
                     UnoCard msg = Util.Deserialize(e.Result) as UnoCard;
                     if (!bStart)
                     {
-                        if (socket.LocalEndPoint.Address == ListeningSocket.LocalEndPoint.Address && msg == UnoCard.StartRound)
+                        if (socket.RemoteEndPoint.Port == clients[0].Socket.RemoteEndPoint.Port && msg == UnoCard.StartRound)
                             bStart = true;
                     }
                     else if (socket.RemoteEndPoint.Port == clients[clientIsOn].Socket.RemoteEndPoint.Port) 
                     {
-                        if (msg == UnoCard.EndRound)
+                        if (bReturnCards)
                         {
-                            bEndRound = true;
+                            iTake++;
+                            cards.Return(msg);
+                        }
+                        else if (msg == UnoCard.PlusTwoBack)
+                        {
+                            bReturnCards = true;
+                        }
+                        else if (msg == UnoCard.EndRound)
+                        {
+                            if (bReturnCards)
+                                bReturnCards = false;
+                            else
+                                bEndRound = true;
                         }
                         else if (msg == UnoCard.GiveCard && !bCardTaken)
                         {
@@ -153,7 +164,7 @@ namespace UnoServer
                             }
                             else if (msg.Number == (int)UnoC.SpecialCards.TakeTwo)
                             {
-                                iTake = 2;
+                                iTake += 2;
                             }
                             else if (msg.Number == (int)UnoC.SpecialCards.ChangeColorPlusFour)
                             {
@@ -302,7 +313,7 @@ namespace UnoServer
         private void StartGame()
         {
             //Wait for clients to connect
-            while ((clients.Count < clientsToUse || (bStart && clients.Count >= 2)) && clientIsOn == 0)
+            while (clients.Count < clientsToUse && !(bStart && clients.Count >= 2))
             {
                 Thread.Sleep(100);
             }

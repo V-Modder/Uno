@@ -32,6 +32,7 @@
             this.btn_start = new System.Windows.Forms.Button();
             this.lbl_players = new System.Windows.Forms.Label();
             this.btn_recieve = new System.Windows.Forms.Button();
+            this.lbl_warnplustwo = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // txt_players
@@ -75,11 +76,22 @@
             this.btn_recieve.UseVisualStyleBackColor = true;
             this.btn_recieve.Click += new System.EventHandler(this.btn_recieve_Click);
             // 
+            // lbl_warnplustwo
+            // 
+            this.lbl_warnplustwo.ForeColor = System.Drawing.Color.Red;
+            this.lbl_warnplustwo.Location = new System.Drawing.Point(586, 145);
+            this.lbl_warnplustwo.Name = "lbl_warnplustwo";
+            this.lbl_warnplustwo.Size = new System.Drawing.Size(146, 36);
+            this.lbl_warnplustwo.TabIndex = 4;
+            this.lbl_warnplustwo.Text = "!!!Warning place a +2 card, to avoid getting 2 cards!!!";
+            this.lbl_warnplustwo.Visible = false;
+            // 
             // UnoClient
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(745, 310);
+            this.Controls.Add(this.lbl_warnplustwo);
             this.Controls.Add(this.btn_recieve);
             this.Controls.Add(this.lbl_players);
             this.Controls.Add(this.btn_start);
@@ -100,6 +112,7 @@
         private System.Windows.Forms.Button btn_start;
         private System.Windows.Forms.Label lbl_players;
         private System.Windows.Forms.Button btn_recieve;
+        private System.Windows.Forms.Label lbl_warnplustwo;
 
     }
 }
