@@ -310,10 +310,18 @@ namespace UnoServer
             get { return t.IsAlive; }
         }
 
+        private bool PlayersJoinedComplete()
+        {
+            foreach (UnoPlayer p in clients)
+                if (p.Name == null || p.Name == string.Empty || p.Name == "")
+                    return false;
+            return true;
+        }
+
         private void StartGame()
         {
             //Wait for clients to connect
-            while (clients.Count < clientsToUse && !(bStart && clients.Count >= 2))
+            while ((clients.Count < clientsToUse && !(bStart && clients.Count >= 2)) && PlayersJoinedComplete())
             {
                 Thread.Sleep(100);
             }
@@ -329,7 +337,12 @@ namespace UnoServer
                 if (i >= (clients.Count * 6) - 1)
                     clients[i % clients.Count].Cards = 7;
             }
-            cDeck.Push(cards.GetNext());
+
+            do
+            {
+                cDeck.Push(cards.GetNext());
+            } while (cDeck.Peek().Color == Colors.Black || cDeck.Peek().Number >= (int)UnoC.SpecialCards.Skip);
+
             for (int i = 0; i < clients.Count; i++)
             {
                 //Send deck card

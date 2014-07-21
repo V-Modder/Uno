@@ -15,6 +15,7 @@ namespace Uno
         public UnoMainForm()
         {
             InitializeComponent();
+            this.Icon = Uno.Properties.Resources.uno;
         }
 
         private void rdb_connect_CheckedChanged(object sender, EventArgs e)

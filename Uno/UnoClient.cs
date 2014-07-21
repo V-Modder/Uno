@@ -6,6 +6,8 @@ using System.Windows.Forms;
 using Nito.Async;
 using Nito.Async.Sockets;
 using UnoC;
+using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
 
 namespace UnoClient
 {
@@ -18,6 +20,8 @@ namespace UnoClient
         private bool isRunning;
         private bool bIsAdmin;
         private bool bHasEntered;
+        private bool bEnableUI;
+        private bool bFirstRound;
         private int iStarted;
         private int iTakenCards;
         private string playerName;
@@ -34,11 +38,14 @@ namespace UnoClient
         public UnoClient(string Address, string PlayerName, bool IsAdmin=false)
         {
             InitializeComponent();
+            this.Icon = Uno.Properties.Resources.uno;
             this.iStarted = 0;
             this.iTakenCards = 0;
             this.isRunning = true;
             this.bHasEntered = false;
             this.playerName = PlayerName;
+            this.bEnableUI = false;
+            this.bFirstRound = true;
             #if !DEBUG
             this.client = new SimpleClientTcpSocket();
             this.client.PacketArrived += new Action<AsyncResultEventArgs<byte[]>>(client_PacketArrived);
@@ -50,17 +57,18 @@ namespace UnoClient
             this.cards = new List<UnoCard>();
             this.players = new List<UnoPlayer>();
             this.pictures = new List<PictureBox>();
-            col = new System.Drawing.Color[10];
-            col[0] = Color.LightBlue;
-            col[1] = Color.LightYellow;
-            col[2] = Color.LightCyan;
-            col[3] = Color.LightGreen;
-            col[4] = Color.LightSalmon;
-            col[5] = Color.LightCoral;
-            col[6] = Color.LightSeaGreen;
-            col[7] = Color.LightGoldenrodYellow;
-            col[8] = Color.LightCoral;
-            col[9] = Color.Violet;
+            this.Text += " - " + this.playerName;
+            this.col = new System.Drawing.Color[10];
+            this.col[0] = Color.LightBlue;
+            this.col[1] = Color.LightYellow;
+            this.col[2] = Color.LightCyan;
+            this.col[3] = Color.LightGreen;
+            this.col[4] = Color.LightSalmon;
+            this.col[5] = Color.LightCoral;
+            this.col[6] = Color.LightSeaGreen;
+            this.col[7] = Color.LightGoldenrodYellow;
+            this.col[8] = Color.LightCoral;
+            this.col[9] = Color.Violet;
         }
 
         private void btn_recieve_Click(object sender, EventArgs e)
@@ -80,7 +88,7 @@ namespace UnoClient
 
         private void UnoCard_MouseDown(object sender, MouseEventArgs e)
         {
-            if (e.Button == System.Windows.Forms.MouseButtons.Left)
+            if (e.Button == System.Windows.Forms.MouseButtons.Left && bEnableUI)
             {
                 PictureBox p = (PictureBox)sender;
                 p.Location = new Point(p.Location.X + 10, p.Location.Y + 10);
@@ -92,7 +100,7 @@ namespace UnoClient
         private void UnoCard_MouseMove(object sender, MouseEventArgs e)
         {
             PictureBox p = (PictureBox)sender;
-            if (e.Button == System.Windows.Forms.MouseButtons.Left)
+            if (e.Button == System.Windows.Forms.MouseButtons.Left && bEnableUI)
             {
                 p.Left = e.X + p.Left - MouseDownLocation.X;
                 p.Top = e.Y + p.Top - MouseDownLocation.Y;
@@ -123,6 +131,7 @@ namespace UnoClient
             }
             else
             {
+                bEnableUI = false;
                 int i = pictures.IndexOf(p);
                 if (cards[i].Color == stack.Color || cards[i].Number == stack.Number || cards[i].Color == Colors.Black)
                 {
@@ -139,15 +148,16 @@ namespace UnoClient
                         client.WriteAsync(Util.Serialize(UnoCard.EndRound));
                     }
                     stack = cards[i];
-                    cards.RemoveAt(i);
-                    this.Controls.Remove(p);
-                    pictures.Remove(p);
                     if (stack.Color == Colors.Black)
                     {
                         Uno.ChooseBox cb = new Uno.ChooseBox();
                         cb.ShowDialog();
                         stack.Color = cb.Choose;
                     }
+                    cards.RemoveAt(i);
+                    this.Controls.Remove(p);
+                    pictures.Remove(p);
+                    
                     #if !DEBUG
                     client.WriteAsync(Util.Serialize(stack));
                     #endif
@@ -160,10 +170,13 @@ namespace UnoClient
 
         private void UnoCard_MouseEnter(object sender, EventArgs e)
         {
-            PictureBox p = (PictureBox)sender;
-            p.Location = new Point(p.Location.X - 10, p.Location.Y - 10);
-            p.Size = new Size(120, 162);
-            p.BringToFront();
+            if (bEnableUI)
+            {
+                PictureBox p = (PictureBox)sender;
+                p.Location = new Point(p.Location.X - 10, p.Location.Y - 10);
+                p.Size = new Size(120, 162);
+                p.BringToFront();
+            }
         }
 
         private void UnoCard_MouseLeave(object sender, EventArgs e)
@@ -234,6 +247,10 @@ namespace UnoClient
                 case 0:
                     iStarted = 1;
                     stack = (UnoCard)Util.Deserialize(e.Result);
+                    if (!bFirstRound)
+                        bEnableUI = true;
+                    else
+                        bFirstRound = false;
                     if (stack.Number == (int)UnoC.SpecialCards.TakeTwo)
                         lbl_warnplustwo.Visible = true;
                     break;
@@ -264,7 +281,7 @@ namespace UnoClient
                             {
                                 iStarted = 0;
                                 RefreshDisplay();
-                                btn_recieve.Enabled = true;
+                                //btn_recieve.Enabled = true;
                                 btn_start.Visible = false;
                             }
                             else
@@ -327,7 +344,44 @@ namespace UnoClient
                 txt_players.ScrollToCaret();
             }
             txt_players.Select(0, 0);
+            if (stack.Number < (int)UnoC.SpecialCards.ChangeColor)
+                pcb_stack.Image = stack.GetImage();
+            else
+            {
+                Color ColorChoose = Color.Black;
+                UnoCard black = new UnoCard(stack.Number, Colors.Black);
+                switch (stack.Color)
+                {
+                    case Colors.Blue:
+                        ColorChoose = ToColor(0xFF5555FF);
+                        break;
+                    case Colors.Green:
+                        ColorChoose = ToColor(0xFF00AA00);
+                        break;
+                    case Colors.Red:
+                        ColorChoose = ToColor(0xFFFF5555);
+                        break;
+                    case Colors.Yellow:
+                        ColorChoose = ToColor(0xFFFFAA00);
+                        break;
+                }
+                Bitmap b = (Bitmap)black.GetImage();
+                FloodFill(b, 45, 100, ColorChoose);
+                FloodFill(b, 135, 300, ColorChoose);
+                pcb_stack.Image = b;
+            }
+            
+            pcb_green.Visible = bEnableUI;
+            btn_recieve.Enabled = bEnableUI;
             this.Refresh();
+        }
+
+        private Color ToColor(uint argb)
+        {
+            return Color.FromArgb((byte)((argb & -16777216) >> 0x18),
+                                  (byte)((argb & 0xff0000) >> 0x10),
+                                  (byte)((argb & 0xff00) >> 8),
+                                  (byte)(argb & 0xff));
         }
 
         private void ResetCards(PictureBox index)
@@ -340,7 +394,75 @@ namespace UnoClient
                 pictures[i].Location = new Point((i * 35) + 12, 12);
                 pictures[i].BringToFront();
             }
-            pcb_stack.Image = stack.GetImage();
+            if (stack.Number < (int)UnoC.SpecialCards.ChangeColor)
+                pcb_stack.Image = stack.GetImage();
+            else
+            {
+                Color ColorChoose = Color.Black;
+                UnoCard black = new UnoCard(stack.Number, Colors.Black);
+                switch (stack.Color)
+                {
+                    case Colors.Blue:
+                        ColorChoose = ToColor(0xFF5555FF);
+                        break;
+                    case Colors.Green:
+                        ColorChoose = ToColor(0xFF00AA00);
+                        break;
+                    case Colors.Red:
+                        ColorChoose = ToColor(0xFFFF5555);
+                        break;
+                    case Colors.Yellow:
+                        ColorChoose = ToColor(0xFFFFAA00);
+                        break;
+                }
+                Bitmap b = (Bitmap)black.GetImage();
+                FloodFill(b, 45, 100, ColorChoose);
+                FloodFill(b, 135, 300, ColorChoose);
+                pcb_stack.Image = b;
+            }
+        }
+
+        void FloodFill(Bitmap bitmap, int x, int y, Color color)
+        {
+            BitmapData data = bitmap.LockBits(
+                new Rectangle(0, 0, bitmap.Width, bitmap.Height),
+                ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+            int[] bits = new int[data.Stride / 4 * data.Height];
+            Marshal.Copy(data.Scan0, bits, 0, bits.Length);
+
+            LinkedList<Point> check = new LinkedList<Point>();
+            int floodTo = color.ToArgb();
+            int floodFrom = bits[x + y * data.Stride / 4];
+            bits[x + y * data.Stride / 4] = floodTo;
+
+            if (floodFrom != floodTo)
+            {
+                check.AddLast(new Point(x, y));
+                while (check.Count > 0)
+                {
+                    Point cur = check.First.Value;
+                    check.RemoveFirst();
+
+                    foreach (Point off in new Point[] {
+                new Point(0, -1), new Point(0, 1), 
+                new Point(-1, 0), new Point(1, 0)})
+                    {
+                        Point next = new Point(cur.X + off.X, cur.Y + off.Y);
+                        if (next.X >= 0 && next.Y >= 0 &&
+                            next.X < data.Width &&
+                            next.Y < data.Height)
+                        {
+                            if (bits[next.X + next.Y * data.Stride / 4] == floodFrom)
+                            {
+                                check.AddLast(next);
+                                bits[next.X + next.Y * data.Stride / 4] = floodTo;
+                            }
+                        }
+                    }
+                }
+            }
+            Marshal.Copy(bits, 0, data.Scan0, bits.Length);
+            bitmap.UnlockBits(data);
         }
 
         public bool IsRunning

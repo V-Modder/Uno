@@ -33,6 +33,8 @@
             this.lbl_players = new System.Windows.Forms.Label();
             this.btn_recieve = new System.Windows.Forms.Button();
             this.lbl_warnplustwo = new System.Windows.Forms.Label();
+            this.pcb_green = new System.Windows.Forms.PictureBox();
+            ((System.ComponentModel.ISupportInitialize)(this.pcb_green)).BeginInit();
             this.SuspendLayout();
             // 
             // txt_players
@@ -86,11 +88,23 @@
             this.lbl_warnplustwo.Text = "!!!Warning place a +2 card, to avoid getting 2 cards!!!";
             this.lbl_warnplustwo.Visible = false;
             // 
+            // pcb_green
+            // 
+            this.pcb_green.Image = global::Uno.Properties.Resources.green;
+            this.pcb_green.Location = new System.Drawing.Point(706, 42);
+            this.pcb_green.Name = "pcb_green";
+            this.pcb_green.Size = new System.Drawing.Size(26, 23);
+            this.pcb_green.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.pcb_green.TabIndex = 5;
+            this.pcb_green.TabStop = false;
+            this.pcb_green.Visible = false;
+            // 
             // UnoClient
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(745, 310);
+            this.Controls.Add(this.pcb_green);
             this.Controls.Add(this.lbl_warnplustwo);
             this.Controls.Add(this.btn_recieve);
             this.Controls.Add(this.lbl_players);
@@ -101,6 +115,7 @@
             this.Text = "UnoClient";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.UnoClient_FormClosing);
             this.Load += new System.EventHandler(this.UnoClient_Load);
+            ((System.ComponentModel.ISupportInitialize)(this.pcb_green)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -113,6 +128,7 @@
         private System.Windows.Forms.Label lbl_players;
         private System.Windows.Forms.Button btn_recieve;
         private System.Windows.Forms.Label lbl_warnplustwo;
+        private System.Windows.Forms.PictureBox pcb_green;
 
     }
 }
