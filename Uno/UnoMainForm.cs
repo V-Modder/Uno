@@ -34,25 +34,7 @@ namespace Uno
 
         private void btn_start_Click(object sender, EventArgs e)
         {
-            if (rdb_connect.Checked == true)
-            {
-                uc = new UnoClient.UnoClient(txt_address.Text, txt_playerName.Text);
-                this.Hide();
-                uc.Show();
-                tmr_closed.Enabled = true;
-            }
-            else
-            {
-                Logger = new ConcurrentBag<string>();
-                server = new UnoSrv(Convert.ToInt32(txt_maxPlayer.Text), ref Logger); 
-                server.Start();
-
-                //start client
-                uc = new UnoClient.UnoClient("127.0.0.1", txt_playerName.Text, true);
-                this.Hide();
-                uc.Show();
-                tmr_closed.Enabled = true;
-            }
+            Start();
         }
 
         private void tmr_closed_Tick(object sender, EventArgs e)
@@ -98,6 +80,37 @@ namespace Uno
                 tt.Show("Playercount must be between 2-10", tb, 20, -70, 2500);
                 tb.Focus();
                 tb.SelectAll();
+            }
+        }
+
+        private void txt_playerName_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                Start();
+            }
+        }
+
+        private void Start()
+        {
+            if (rdb_connect.Checked == true)
+            {
+                uc = new UnoClient.UnoClient(txt_address.Text, txt_playerName.Text);
+                this.Hide();
+                uc.Show();
+                tmr_closed.Enabled = true;
+            }
+            else
+            {
+                Logger = new ConcurrentBag<string>();
+                server = new UnoSrv(Convert.ToInt32(txt_maxPlayer.Text), ref Logger);
+                server.Start();
+
+                //start client
+                uc = new UnoClient.UnoClient("127.0.0.1", txt_playerName.Text, true);
+                this.Hide();
+                uc.Show();
+                tmr_closed.Enabled = true;
             }
         }
     }

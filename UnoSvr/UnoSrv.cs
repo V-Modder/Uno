@@ -143,6 +143,7 @@ namespace UnoServer
                         {
                             bCardTaken = true;
                             socket.WriteAsync(Util.Serialize(this.GetCard()));
+                            clients[clientIsOn].Cards++;
                         }
                         else if (msg == UnoCard.Uno)
                         {
@@ -321,11 +322,11 @@ namespace UnoServer
         private void StartGame()
         {
             //Wait for clients to connect
-            while ((clients.Count < clientsToUse && !(bStart && clients.Count >= 2)) && PlayersJoinedComplete())
+            while ((clients.Count < clientsToUse && !(bStart && clients.Count >= 2)) || !PlayersJoinedComplete())
             {
                 Thread.Sleep(100);
             }
-
+            Thread.Sleep(200);
             //Share cards to all players + deck
             cards = new UnoCards();
             Stack<UnoCard>[] clientcards = new Stack<UnoCard>[clients.Count];  

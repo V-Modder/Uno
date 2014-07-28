@@ -111,6 +111,7 @@
             this.txt_playerName.Name = "txt_playerName";
             this.txt_playerName.Size = new System.Drawing.Size(100, 20);
             this.txt_playerName.TabIndex = 2;
+            this.txt_playerName.KeyDown += new System.Windows.Forms.KeyEventHandler(this.txt_playerName_KeyDown);
             // 
             // label1
             // 

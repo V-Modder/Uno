@@ -63,9 +63,9 @@ namespace Uno.Properties {
         /// <summary>
         ///   Sucht eine lokalisierte Ressource vom Typ System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap green {
+        internal static System.Drawing.Bitmap greenlight {
             get {
-                object obj = ResourceManager.GetObject("green", resourceCulture);
+                object obj = ResourceManager.GetObject("greenlight", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

@@ -22,6 +22,7 @@ namespace UnoClient
         private bool bHasEntered;
         private bool bEnableUI;
         private bool bFirstRound;
+        private bool bHasCard;
         private int iStarted;
         private int iTakenCards;
         private string playerName;
@@ -46,6 +47,7 @@ namespace UnoClient
             this.playerName = PlayerName;
             this.bEnableUI = false;
             this.bFirstRound = true;
+            this.bHasCard = false;
             #if !DEBUG
             this.client = new SimpleClientTcpSocket();
             this.client.PacketArrived += new Action<AsyncResultEventArgs<byte[]>>(client_PacketArrived);
@@ -71,8 +73,16 @@ namespace UnoClient
             this.col[9] = Color.Violet;
         }
 
+        private void btn_endround_Click(object sender, EventArgs e)
+        {
+            client.WriteAsync(Util.Serialize(UnoCard.EndRound));
+            bEnableUI = false;
+            RefreshDisplay();
+        }
+
         private void btn_recieve_Click(object sender, EventArgs e)
         {
+            bHasCard = true;
             iStarted = 3;
             client.WriteAsync(Util.Serialize(UnoCard.GiveCard));
             btn_recieve.Enabled = false;
@@ -84,6 +94,11 @@ namespace UnoClient
             client.WriteAsync(Util.Serialize(UnoCard.StartRound));
             #endif
             btn_start.Visible = false;
+        }
+
+        private void dgv_player_SelectionChanged(object sender, EventArgs e)
+        {
+            dgv_player.ClearSelection();
         }
 
         private void UnoCard_MouseDown(object sender, MouseEventArgs e)
@@ -131,7 +146,6 @@ namespace UnoClient
             }
             else
             {
-                bEnableUI = false;
                 int i = pictures.IndexOf(p);
                 if (cards[i].Color == stack.Color || cards[i].Number == stack.Number || cards[i].Color == Colors.Black)
                 {
@@ -147,6 +161,7 @@ namespace UnoClient
                         }
                         client.WriteAsync(Util.Serialize(UnoCard.EndRound));
                     }
+                    bEnableUI = false;
                     stack = cards[i];
                     if (stack.Color == Colors.Black)
                     {
@@ -163,7 +178,8 @@ namespace UnoClient
                     #endif
                     lbl_warnplustwo.Visible = false;
                 }
-                ResetCards(p);
+                //ResetCards(p);
+                RefreshDisplay();
             }
 
         }
@@ -247,6 +263,7 @@ namespace UnoClient
                 case 0:
                     iStarted = 1;
                     stack = (UnoCard)Util.Deserialize(e.Result);
+                    bHasCard = false;
                     if (!bFirstRound)
                         bEnableUI = true;
                     else
@@ -281,7 +298,6 @@ namespace UnoClient
                             {
                                 iStarted = 0;
                                 RefreshDisplay();
-                                //btn_recieve.Enabled = true;
                                 btn_start.Visible = false;
                             }
                             else
@@ -294,6 +310,9 @@ namespace UnoClient
                     {
                         if (msgC != null)
                         {
+                            for (int i = 0; i < players.Count; i++)
+                                if (players[i].Name == this.playerName && players[i].Cards == this.cards.Count)
+                                    players[i].Cards++;
                             cards.Add(msgC);
                             RefreshDisplay();
                         }
@@ -329,21 +348,18 @@ namespace UnoClient
                 pictures.Add(p);
             }
             ResetCards(pictures[0]);
-            txt_players.Text = "";
+            dgv_player.Rows.Clear();
             for (int i = 0; i < players.Count;i++)
             {
+                dgv_player.Rows.Add(players[i].Name, players[i].Cards.ToString());
                 if (players[i].Cards == 1)
-                    txt_players.AppendText((players[i].Name + "\t" + players[i].Cards.ToString()).PadRight(50, ' ') + Environment.NewLine, Color.Red);
-                else
-                    txt_players.AppendText((players[i].Name + "\t" + players[i].Cards.ToString()).PadRight(50, ' ') + Environment.NewLine, Color.Black);
-                txt_players.Select(txt_players.GetFirstCharIndexFromLine(i), txt_players.Lines[i].Length);
-                txt_players.SelectionBackColor = col[i];
-                txt_players.Select(txt_players.GetFirstCharIndexFromLine(i), players[i].Name.Length);
+                    dgv_player.Rows[i].DefaultCellStyle.ForeColor = Color.Red;
+
+                dgv_player.Rows[i].DefaultCellStyle.BackColor = col[i];
+
                 if (players[i].Name == this.playerName && players[i].Cards == this.cards.Count)
-                    txt_players.SelectionFont = new Font(txt_players.SelectionFont.FontFamily, txt_players.SelectionFont.Size, FontStyle.Underline | FontStyle.Bold);
-                txt_players.ScrollToCaret();
+                    dgv_player.Rows[i].Cells[0].Style.Font = new Font(dgv_player.Font, FontStyle.Bold | FontStyle.Underline);
             }
-            txt_players.Select(0, 0);
             if (stack.Number < (int)UnoC.SpecialCards.ChangeColor)
                 pcb_stack.Image = stack.GetImage();
             else
@@ -372,7 +388,8 @@ namespace UnoClient
             }
             
             pcb_green.Visible = bEnableUI;
-            btn_recieve.Enabled = bEnableUI;
+            btn_recieve.Enabled = bEnableUI && !bHasCard;
+            btn_endround.Enabled = bEnableUI;
             this.Refresh();
         }
 
